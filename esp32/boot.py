@@ -3,9 +3,10 @@ import esp
 esp.osdebug(None)
 
 import os, time
+from machine import Pin
 
-ESSID = 'CdR'
-PSWD = 'pizdec-pizdec'
+AP_PIN = 15
+CFG_NAME = '_config'
 CONNECT_WAIT = 10
 TS_NAME = 'timestamp'
 NTP_SYNC_PERIOD = 43200  # 12 hours
@@ -36,17 +37,21 @@ def get_credentials():
     """
         Get WiFi credentials from file, or start AP to get it.
     """
-    (essid, pswd) = (ESSID, PSWD)
+    (essid, pswd) = (None,None)
     try:
-        fh = open('_credentials')
-        essid = fh.readline()
-        pswd = fh.readline()
+        appin = Pin(AP_PIN, Pin.IN)
+        if not appin.value():
+            # force run AP by AP_PIN == 0
+            raise Exception("Force AP by low %s pin" % AP_PIN) 
+        fh = open(CFG_NAME)
+        essid = fh.readline().strip()
+        pswd = fh.readline().strip()
         fh.close()
     except Exception as e:
         print("Error: %s" % e)
         import ap
         ap.run()
-        # (essid, pswd) = ap.run()  # <<<<<<<<<<<<<<<<<<<<<<<<<<
+        # (essid, pswd) = ap.run()  # ?????
     return((essid, pswd))
 
 def sync_time():
