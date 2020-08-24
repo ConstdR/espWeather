@@ -3,10 +3,11 @@ import machine
 import time
 import urequests
 
-URL = "http://192.168.1.5:8088/?id=%s&t=%s&h=%s"
+URL = "http://%s/?id=%s&t=%s&h=%s"
 
 myID = int.from_bytes(machine.unique_id(), 'big') # 'little' is more correct :)
 
+CFG_NAME = '_config'
 led = machine.Pin(21, machine.Pin.OUT)
 dht = dht.DHT11(machine.Pin(32))
 dhtpower = machine.Pin(12, machine.Pin.OUT)
@@ -17,7 +18,7 @@ DEEP_SLEEP = 900000 # 900000 == 15 min
 def main():
     while True:
         (t, h) = measure()
-        url = URL % (myID, t, h)
+        url = URL % (get_hostport(), myID, t, h)
         print("Get: %s" % url)
         try:
             res = urequests.get(url)
@@ -47,6 +48,18 @@ def measure(res = [0, 0]):
         print("Measuring error: %s" % e)
     dhtpower.off()
     return res
+
+def get_hostport():
+    hostport = None
+    try:
+        fh = open(CFG_NAME)
+        fh.readline() # skip essid
+        fh.readline() # skip pswd
+        hostport = fh.readline().strip()
+        fh.close()
+    except Exception as e:
+        print("Error getting hostport: %s" % e)
+    return hostport
 
 def blink():
     for i in range(5):
