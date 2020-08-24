@@ -3,7 +3,7 @@ import machine
 import time
 import urequests
 
-URL = "http://%s/?id=%s&t=%s&h=%s"
+URL = "http://%s/?id=%s&t=%s&h=%s&v=%s"
 
 myID = int.from_bytes(machine.unique_id(), 'big') # 'little' is more correct :)
 
@@ -11,14 +11,15 @@ CFG_NAME = '_config'
 led = machine.Pin(21, machine.Pin.OUT)
 dht = dht.DHT11(machine.Pin(32))
 dhtpower = machine.Pin(12, machine.Pin.OUT)
+lvlpin = machine.ADC(machine.Pin(34))
 MEASURE_COUNT = 1
 MEASURE_TIMEOUT = 1
 DEEP_SLEEP = 900000 # 900000 == 15 min
 
 def main():
     while True:
-        (t, h) = measure()
-        url = URL % (get_hostport(), myID, t, h)
+        (t, h, v) = measure()
+        url = URL % (get_hostport(), myID, t, h, v)
         print("Get: %s" % url)
         try:
             res = urequests.get(url)
@@ -30,13 +31,18 @@ def main():
         print('Deepsleep for %s sec.' % str(DEEP_SLEEP/1000))
         machine.deepsleep(DEEP_SLEEP)
 
-def measure(res = [0, 0]):
+def measure(res = [0, 0, 0]):
     # DHT have more than 2 sec sampling period 
     # https://www.makerguides.com/wp-content/uploads/2019/02/DHT11-Datasheet.pdf
     # so we can do MEASURE_COUNT measures in MEASURE_TIMEOUT sec interval 
     # and take average (but we still give a shit)
     dhtpower.on()
     try:
+        lvlpin.width(lvlpin.WIDTH_12BIT)
+        lvlpin.atten(lvlpin.ATTN_11DB)
+        res[2] = lvlpin.read() / 100.0
+
+        print("lvl: %s" % res[2])
         for i in range(MEASURE_COUNT):
             time.sleep(MEASURE_TIMEOUT)
             dht.measure()
@@ -47,6 +53,7 @@ def measure(res = [0, 0]):
     except Exception as e:
         print("Measuring error: %s" % e)
     dhtpower.off()
+
     return res
 
 def get_hostport():

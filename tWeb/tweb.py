@@ -55,11 +55,14 @@ class tHandler(BaseHTTPRequestHandler):
                 remoteid = params['id'][0]
                 temp = params['t'][0] if 't' in params.keys() else ''
                 humidity = params['h'][0] if 'h' in params.keys() else ''
+                voltage = params['v'][0] if 'v' in params.keys() else ''
                 timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-                row = "%s,%s,%s,%s" % (timestamp, client_ip, temp, humidity)
+                row = "%s,%s,%s,%s,%s" % (timestamp, client_ip, temp, humidity, voltage)
                 lastrow = None
                 try:
                     fr = open("%s/%s.csv" % (args.dir, remoteid), 'r')
+                    # Chrome love to re-send requests
+                    # get rid of them
                     lastrow = tail(fr) 
                     if lastrow[0] is not None :
                         lastrow = lastrow[0][0].replace(r"\n", " ") 
