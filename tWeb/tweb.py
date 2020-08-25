@@ -53,11 +53,12 @@ class tHandler(BaseHTTPRequestHandler):
     
             if 'id' in params.keys():
                 remoteid = params['id'][0]
-                temp = params['t'][0] if 't' in params.keys() else ''
-                humidity = params['h'][0] if 'h' in params.keys() else ''
-                voltage = params['v'][0] if 'v' in params.keys() else ''
+                temp = params['t'][0] if 't' in params.keys() else '0'
+                humidity = params['h'][0] if 'h' in params.keys() else '0'
+                pressure = params['p'][0] if 'p' in params.keys() else '0'
+                voltage = params['v'][0] if 'v' in params.keys() else '0'
                 timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-                row = "%s,%s,%s,%s,%s" % (timestamp, client_ip, temp, humidity, voltage)
+                row = "%s,%s,%s,%s,%s,%s" % (timestamp, client_ip, temp, humidity, pressure, voltage)
                 lastrow = None
                 try:
                     fr = open("%s/%s.csv" % (args.dir, remoteid), 'r')
