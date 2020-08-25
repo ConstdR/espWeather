@@ -40,7 +40,7 @@ def measure(res = [0, 0, 0]):
     try:
         lvlpin.width(lvlpin.WIDTH_12BIT)
         lvlpin.atten(lvlpin.ATTN_11DB)
-        res[2] = lvlpin.read() / 100.0
+        res[2] = adc_read(lvlpin) / 100.0
 
         print("lvl: %s" % res[2])
         for i in range(MEASURE_COUNT):
@@ -55,6 +55,14 @@ def measure(res = [0, 0, 0]):
     dhtpower.off()
 
     return res
+
+def adc_read(adc):
+    # damn stupid averaging adc reading
+    count = 5
+    val = 0
+    for i in range(count):
+        val += adc.read()
+    return val/count
 
 def get_hostport():
     hostport = None
