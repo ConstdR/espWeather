@@ -2,8 +2,9 @@ import BME280
 import machine
 import time
 import urequests
+import gc
 
-URL = "http://%s/?id=%s&t=%s&h=%s&p=%s&v=%s"
+URL = "http://%s/?id=%s&t=%s&h=%s&p=%s&v=%s&m=%s"
 
 myID = int.from_bytes(machine.unique_id(), 'big') # 'little' is more correct :)
 
@@ -19,9 +20,11 @@ MEASURE_TIMEOUT = 1
 DEEP_SLEEP = 900000 # 900000 == 15 min
 
 def main():
+    wdt = machine.WDT(timeout=int(DEEP_SLEEP+DEEP_SLEEP/2))
     while True:
         (t, h, p, v) = measure()
-        url = URL % (get_hostport(), myID, t, h, p, v)
+        message = 'WakeReason:%s' % machine.wake_reason()
+        url = URL % (get_hostport(), myID, t, h, p, v, message)
         print("Get: %s" % url)
         try:
             res = urequests.get(url)
@@ -31,14 +34,15 @@ def main():
             pass
 #        blink() # bells and whistles
         print('Deepsleep for %s sec.' % str(DEEP_SLEEP/1000))
+        gc.collect()
+        wdt.feed()
         machine.deepsleep(DEEP_SLEEP)
 
 def measure(res = [0, 0, 0, 0]):
     try:
         lvlpin.width(lvlpin.WIDTH_12BIT)
         lvlpin.atten(lvlpin.ATTN_11DB)
-        res = ( bme.temperature, bme.humidity, bme.pressure - 950,
-                adc_read(lvlpin) / 100.0 )
+        res = ( bme.temperature, bme.humidity, bme.pressure, adc_read(lvlpin))
         print("Measuring: %s", res)
     except Exception as e:
         print("Measuring error: %s" % e)

@@ -2,7 +2,7 @@
 import esp
 esp.osdebug(None)
 
-import os, time
+import os, time, gc
 from machine import Pin
 
 AP_PIN = 15
@@ -56,7 +56,7 @@ def get_credentials():
 
 def sync_time():
     """
-        Synchonise local time over the NTP once per NTP_SYNC_PERIOD
+        Sync local time over the NTP once per NTP_SYNC_PERIOD
     """
     doSync = True
     try:
@@ -66,17 +66,21 @@ def sync_time():
             doSync = False
     except:
         pass
-
-    if doSync:
-        print('Sync time')
-        import ntptime
-        ntptime.settime()
-        fh = open(TS_NAME, 'w')
-        fh.write(str(time.time()))
-        fh.close()
+    try:
+        if doSync:
+            print('Sync time')
+            import ntptime
+            ntptime.settime()
+            fh = open(TS_NAME, 'w')
+            fh.write(str(time.time()))
+            fh.close()
+    except Exception as e:
+        print("NTP sync error: %s" % e)
     print('Time: %s' % str(time.localtime()))
 
 def run():
+    gc.enable()
+    gc.collect()
     if ( do_connect()) :
         sync_time()
 

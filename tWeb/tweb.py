@@ -71,7 +71,6 @@ class tHandler(BaseHTTPRequestHandler):
                 except Exception as e:
                     lg.error("%s", e)
     
-                lg.debug("Lastrow: %s" % lastrow)
                 if lastrow is None or lastrow != row:
                     try:
                         fh = open("%s/%s.csv" % (args.dir, remoteid), 'a')

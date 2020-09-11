@@ -14,7 +14,7 @@ tWeb.py -- simple web server to store data recieved from ESP32 modules. Format: 
 - IP
 - temperature (t)
 - humidity (h)
-- pressure (p) in hPa-950
+- pressure (p) in hPa
 - Battery (v) relative value, must be recalculated
 
 
