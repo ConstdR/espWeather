@@ -5,7 +5,7 @@ esp.osdebug(None)
 import os, time, gc
 from machine import Pin
 
-AP_PIN = 15
+AP_PIN = 35
 CFG_NAME = '_config'
 CONNECT_WAIT = 10
 TS_NAME = 'timestamp'
