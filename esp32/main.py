@@ -9,7 +9,8 @@ URL = "http://%s/?id=%s&t=%s&h=%s&p=%s&v=%s&m=%s"
 myID = int.from_bytes(machine.unique_id(), 'big') # 'little' is more correct :)
 
 CFG_NAME = '_config'
-led = machine.Pin(21, machine.Pin.OUT)
+pled = machine.Pin(21)
+led = machine.PWM(pled, freq=50, duty=0)
 
 i2c = machine.I2C(scl=Pin(22), sda=Pin(23), freq=10000)
 bme = BME280.BME280(i2c=i2c)
@@ -18,6 +19,7 @@ lvlpin = machine.ADC(machine.Pin(34))
 MEASURE_COUNT = 1
 MEASURE_TIMEOUT = 1
 DEEP_SLEEP = 900000 # 900000 == 15 min
+FAKE_SLEEP = 0 # 1 -- no really go to deep sleep
 
 def main():
     wdt = machine.WDT(timeout=int(DEEP_SLEEP+DEEP_SLEEP/2))
@@ -32,11 +34,17 @@ def main():
         except Exception as e:
             print("Exception: %s" % (e))
             pass
-#        blink() # bells and whistles
+        blink() # bells and whistles
         print('Deepsleep for %s sec.' % str(DEEP_SLEEP/1000))
         gc.collect()
         wdt.feed()
-        machine.deepsleep(DEEP_SLEEP)
+        if FAKE_SLEEP :
+            print("Fake sleep")
+            blink() # bells and whistles
+            time.sleep(DEEP_SLEEP/1000 - 3)
+        else:
+            machine.deepsleep(DEEP_SLEEP)
+        blink() # bells and whistles
 
 def measure(res = [0, 0, 0, 0]):
     try:
@@ -69,8 +77,8 @@ def get_hostport():
     return hostport
 
 def blink():
-    for i in range(5):
-        led.value( not led.value())
+    for i in range(6):
+        led.duty(20) if led.duty() == 0 else led.duty(0)
         time.sleep(.5)
 
 main()
