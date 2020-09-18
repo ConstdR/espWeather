@@ -3,14 +3,14 @@
 <head>
     <title>Weather %(id)s</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta n ''ame="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="refresh" content="450" />
     <script src="dygraph.js"></script>
     <link rel="stylesheet" href="dygraph.css" />
 </head>
 <body>
-<i>%(tztime)s</i><br/>
-<h1>Temperature: <span style="color:#25259a">%(temperature)s</span> °C</h1>
+<center><h2><i>%(tztime)s</i></h2></center><br/>
+<h1>Temperature <span style="color:#25259a">%(temperature)s</span> °C</h1>
 <div id="temperature" style="width:1000px; height:300px; margin-left:50px"></div>
 <h1>Humidity <span style="color:#3d9e3d">%(humidity)s</span> %%</h1>
 <div id="humidity" style="width:1000px; height:300px; margin-left:50px"></div>
@@ -24,15 +24,16 @@
   req.open("GET", "%(id)s/t.csv", false);
   req.onreadystatechange = function() { csv = req.responseText; }
   req.send();
-  labels = ['Time', 'IP', 'Temperature', 'Humidity', 'Pressure', 'Battery'];
+  labels = ['Time', 'Temperature', 'Humidity', 'Pressure', 'Battery'];
   gt = new Dygraph(
     document.getElementById("temperature"),
     csv, // "%(id)s/t.csv",
     {
     labels: labels,
-    visibility: [false, true, false, false, false],
-    rollPeriod: 1,
-    showRoller: true
+    visibility: [true, false, false, false],
+    rollPeriod: 5,
+    showRoller: true,
+    color: "#25259a"
     }
     );
   g1 = new Dygraph(
@@ -40,9 +41,10 @@
     csv,
     {
     labels: labels,
-    visibility: [false, false, true, false, false],
-    rollPeriod: 1,
+    visibility: [false, true, false, false],
+    rollPeriod: 5,
     showRoller: true,
+    color: "#3d9e3d"
     }
     );
   g2 = new Dygraph(
@@ -50,9 +52,10 @@
     csv,
     {
     labels: labels,
-    visibility: [false, false, false, true, false],
-    rollPeriod: 1,
+    visibility: [false, false, true, false],
+    rollPeriod: 5,
     showRoller: true,
+    color: "#800080"
     }
     );
   g3 = new Dygraph(
@@ -60,12 +63,14 @@
     csv,
     {
     labels: labels,
-    visibility: [false, false, false, false, true],
-    rollPeriod: 1,
+    visibility: [false, false, false, true],
+    rollPeriod: 5,
     showRoller: true,
+    color:"#008080"
     }
     );
 </script>
-IP: %(ip)s
+<hr/>
+<h2><i>IP: %(ip)s</i><h2>
 </body>
 </html>

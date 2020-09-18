@@ -57,7 +57,7 @@ class tHandler(BaseHTTPRequestHandler):
                                    % args.timezone)
                 rows = res.fetchall()
                 for row in rows:
-                    txt = txt + "%(tztime)s,%(ip)s,%(temperature)s,%(humidity)s,%(pressure)s,%(voltage)s\n" % row 
+                    txt = txt + "%(tztime)s,%(temperature)s,%(humidity)s,%(pressure)s,%(voltage)s\n" % row 
                 dbh.close()
             else:
                 dbh = get_dbh(data[0])
