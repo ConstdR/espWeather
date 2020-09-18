@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Weather %(id)s</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="refresh" content="450" />
+    <script src="dygraph.js"></script>
+    <link rel="stylesheet" href="dygraph.css" />
+</head>
+<body>
+<i>%(tztime)s</i><br/>
+<h1>Temperature: <span style="color:#25259a">%(temperature)s</span> °C</h1>
+<div id="temperature" style="width:1000px; height:300px; margin-left:50px"></div>
+<h1>Humidity <span style="color:#3d9e3d">%(humidity)s</span> %%</h1>
+<div id="humidity" style="width:1000px; height:300px; margin-left:50px"></div>
+<h1>Pressure <span style="color:#800080">%(pressure)s</span> hPa</h1>
+<div id="pressure" style="width:1000px; height:300px; margin-left:50px"></div>
+<h1>Battery <span style="color:#008080">%(voltage)s</span> TBD (testing)</h1>
+<div id="battery" style="width:1000px; height:300px; margin-left:50px"></div>
+<script type="text/javascript">
+  var csv = '';
+  var req = new XMLHttpRequest();
+  req.open("GET", "%(id)s/t.csv", false);
+  req.onreadystatechange = function() { csv = req.responseText; }
+  req.send();
+  labels = ['Time', 'IP', 'Temperature', 'Humidity', 'Pressure', 'Battery'];
+  gt = new Dygraph(
+    document.getElementById("temperature"),
+    csv, // "%(id)s/t.csv",
+    {
+    labels: labels,
+    visibility: [false, true, false, false, false],
+    rollPeriod: 1,
+    showRoller: true
+    }
+    );
+  g1 = new Dygraph(
+    document.getElementById("humidity"),
+    csv,
+    {
+    labels: labels,
+    visibility: [false, false, true, false, false],
+    rollPeriod: 1,
+    showRoller: true,
+    }
+    );
+  g2 = new Dygraph(
+    document.getElementById("pressure"),
+    csv,
+    {
+    labels: labels,
+    visibility: [false, false, false, true, false],
+    rollPeriod: 1,
+    showRoller: true,
+    }
+    );
+  g3 = new Dygraph(
+    document.getElementById("battery"),
+    csv,
+    {
+    labels: labels,
+    visibility: [false, false, false, false, true],
+    rollPeriod: 1,
+    showRoller: true,
+    }
+    );
+</script>
+IP: %(ip)s
+</body>
+</html>
