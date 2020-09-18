@@ -14,6 +14,7 @@ import os, sqlite3
 
 lg = logging.getLogger(__file__)
 args = None
+VMAS = 583
 
 def main():
     global args
@@ -35,21 +36,26 @@ def main():
 
 class tHandler(BaseHTTPRequestHandler):
     code = 200
-    def show_favicon_ico(self, data):
-        self.do_HEAD('text/text')
-        self.wfile.write(b'')
+    def show_favicon_ico(self, parsedpath=None):
+        ico = open('%s/favicon.ico' % args.datadir, 'rb').read()
+        self.do_HEAD('image/png', len(ico), 43200)
+        self.wfile.write(ico)
 
     def show_graph(self, data):
         lg.debug("Graph for %s" % data)
         txt = ''
         content_type = 'text/text'
+        age = None
         try:
             if data[0] in ('dygraph.js', 'dygraph.css'):
+                age = 43200
                 txt = open('%s/templates/%s' % (args.datadir, data[0]), 'r').read()
                 if data[0].endswith('.css'):
                     content_type = 'text/css'
                 else:
                     content_type = 'text/javascript'
+            elif data[0] == 'favicon.ico':
+                self.show_favicon_ico()
             elif len(data) > 1 and data[1].endswith('.csv'):
                 dbh = get_dbh(data[0])
                 content_type = 'text/csv'
@@ -72,17 +78,19 @@ class tHandler(BaseHTTPRequestHandler):
                 dbh.close()
         except Exception as e:
             lg.error(str(e))
-            self.code = 400
+            self.code = 404
             txt = 'Error'
         btxt = bytearray(txt, 'UTF-8')
-        self.do_HEAD(content_type, len(btxt))
+        self.do_HEAD(content_type, len(btxt), age)
         self.wfile.write(btxt)
 
-    def do_HEAD(self, content_type="text/text", content_length=None):
+    def do_HEAD(self, content_type="text/text", content_length=None, age=None):
         self.send_response(self.code)
-        self.send_header("Content-type", content_type)
+        self.send_header("Content-Type", content_type)
         if content_length :
-            self.send_header("Content_length", content_length)
+            self.send_header("Content-Length", content_length)
+        if age :
+            self.send_header("Cache-Control", "max-age=%s" % age)
         self.end_headers()
 
     def do_GET(self):
@@ -97,7 +105,7 @@ class tHandler(BaseHTTPRequestHandler):
             parsedpath.pop(0)
             result = getattr(self, method)(parsedpath)
         except Exception as e:
-            lg.debug(e)
+            lg.debug(str(e))
             try:
                 params = parse_qs(parsedurl.query)
                 client_ip = self.client_address[0]
@@ -109,10 +117,10 @@ class tHandler(BaseHTTPRequestHandler):
                     temp = params['t'][0] if 't' in params.keys() else '0'
                     humidity = params['h'][0] if 'h' in params.keys() else '0'
                     pressure = params['p'][0] if 'p' in params.keys() else '0'
-                    voltage = params['v'][0] if 'v' in params.keys() else '0'
+                    voltage = float(params['v'][0])/VMAS if 'v' in params.keys() else '0'
                     message = params['m'][0] if 'm' in params.keys() else ''
                     timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-                    dbh = get_dbh(remoteid)
+                    dbh = get_dbh(remoteid, True)
                     c = dbh.cursor()
                     c.execute('insert or replace into data values(?,?,?,?,?,?,?)',
                               (timestamp, client_ip, temp, humidity, pressure, voltage, message))
@@ -128,11 +136,11 @@ class tHandler(BaseHTTPRequestHandler):
             self.do_HEAD()
             self.wfile.write(b'OK.')
 
-def get_dbh(name):
+def get_dbh(name, create=False):
     fname = '%s/%s.sqlite3' % (args.datadir, name)
     if os.path.isfile(fname) :
         dbh = sqlite3.connect(fname)
-    else:
+    elif create:
         dbh = sqlite3.connect(fname)
         c = dbh.cursor()
         c.execute("""

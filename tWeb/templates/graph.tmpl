@@ -10,13 +10,13 @@
 </head>
 <body>
 <center><h2><i>%(tztime)s</i></h2></center><br/>
-<h1>Temperature <span style="color:#25259a">%(temperature)s</span> °C</h1>
+<h1>Temperature <span style="color:#25259a">%(temperature).2f</span> °C</h1>
 <div id="temperature" style="width:1000px; height:300px; margin-left:50px"></div>
-<h1>Humidity <span style="color:#3d9e3d">%(humidity)s</span> %%</h1>
+<h1>Humidity <span style="color:#3d9e3d">%(humidity).2f</span> %%</h1>
 <div id="humidity" style="width:1000px; height:300px; margin-left:50px"></div>
-<h1>Pressure <span style="color:#800080">%(pressure)s</span> hPa</h1>
+<h1>Pressure <span style="color:#800080">%(pressure).2f</span> hPa</h1>
 <div id="pressure" style="width:1000px; height:300px; margin-left:50px"></div>
-<h1>Battery <span style="color:#008080">%(voltage)s</span> TBD (testing)</h1>
+<h1>Battery <span style="color:#008080">%(voltage).2f</span> V</h1>
 <div id="battery" style="width:1000px; height:300px; margin-left:50px"></div>
 <script type="text/javascript">
   var csv = '';
