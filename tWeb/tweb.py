@@ -35,17 +35,21 @@ def main():
     httpd.serve_forever()
 
 class tHandler(BaseHTTPRequestHandler):
+    server_version = "BaseHTTP/0.9"
+    sys_version = "Pantofle/0.42"
     code = 200
     def show_favicon_ico(self, parsedpath=None):
-        ico = open('%s/favicon.ico' % args.datadir, 'rb').read()
-        self.do_HEAD('image/png', len(ico), 43200)
-        self.wfile.write(ico)
+        #ico = open('%s/favicon.ico' % args.datadir, 'rb').read()
+        #self.do_HEAD('image/png', len(ico), 43200)
+        #self.wfile.write(icoa)
+        self.code=404
 
     def show_graph(self, data):
         lg.debug("Graph for %s" % data)
         txt = ''
         content_type = 'text/text'
         age = None
+        refreshtime = 450
         try:
             if data[0] in ('dygraph.js', 'dygraph.css'):
                 age = 43200
@@ -56,6 +60,7 @@ class tHandler(BaseHTTPRequestHandler):
                     content_type = 'text/javascript'
             elif data[0] == 'favicon.ico':
                 self.show_favicon_ico()
+                return
             elif len(data) > 1 and data[1].endswith('.csv'):
                 dbh = get_dbh(data[0])
                 content_type = 'text/csv'
@@ -67,10 +72,24 @@ class tHandler(BaseHTTPRequestHandler):
                 dbh.close()
             else:
                 dbh = get_dbh(data[0])
-                res = dbh.execute("select *, datetime(timedate, '%s hours') as tztime from data order by timedate desc limit 1"
+                # rename?
+                parsedurl = urlparse(self.path)
+                params = parse_qs(parsedurl.query)
+                if 'rename' in params.keys():
+                        newname = params['rename'][0]
+                        dbh.execute("insert or replace into params values (?, ?)", ('name', newname))
+                        dbh.commit()
+                        refreshtime=0
+                res = dbh.execute("""select case when params.value is NULL then '__new__' else params.value end as name,
+                                            data.*, datetime(timedate, '%s hours') as tztime 
+                                     from data
+                                     left join params on params.name='name'
+                                     order by timedate desc limit 1"""
                                   % args.timezone )
                 row = res.fetchone()
                 row['id'] = data[0]
+                row['refreshtime'] = refreshtime
+                row['url'] = parsedurl.path
                 lg.debug(row)
                 tmpl = open('%s/templates/graph.tmpl' % args.datadir, 'r').read()
                 txt = tmpl % row
@@ -97,13 +116,14 @@ class tHandler(BaseHTTPRequestHandler):
         parsedurl = urlparse(self.path)
         parsedpath = parsedurl.path.split('/')
         parsedpath.pop(0)
-        lg.debug("parsedurl:")
-        lg.debug(parsedpath)
 
         try:
-            method = 'show_' + parsedpath[0].replace('.', '_')
-            parsedpath.pop(0)
-            result = getattr(self, method)(parsedpath)
+            if parsedpath[0]:
+                method = 'show_' + parsedpath[0].replace('.', '_')
+                parsedpath.pop(0)
+                result = getattr(self, method)(parsedpath)
+            else :
+                raise Exception("Empty path.")
         except Exception as e:
             lg.debug(str(e))
             try:
@@ -135,6 +155,8 @@ class tHandler(BaseHTTPRequestHandler):
 
             self.do_HEAD()
             self.wfile.write(b'OK.')
+        self.wfile.flush()
+        self.connection.close()
 
 def get_dbh(name, create=False):
     fname = '%s/%s.sqlite3' % (args.datadir, name)
@@ -143,12 +165,11 @@ def get_dbh(name, create=False):
     elif create:
         dbh = sqlite3.connect(fname)
         c = dbh.cursor()
-        c.execute("""
-                    CREATE TABLE data ( timedate text primary key, ip text,
+        c.execute("""CREATE TABLE data ( timedate text primary key, ip text,
                                         temperature real, humidity real,
                                         pressure real, voltage real,
-                                        message text);
-                  """)
+                                        message text)""")
+        c.execute("CREATE TABLE params (name texti primary key, value text)")
         dbh.commit()
     dbh.row_factory = dict_factory
     return dbh
@@ -167,7 +188,7 @@ def loggerConfig(level=0, log_file=None):
     formatter = logging.Formatter('%(asctime)s - %(name)s:%(lineno)d %(threadName)s - %(levelname)s - %(message)s')
     ch.setFormatter(formatter)
     lg.addHandler(ch)
- 
+
 if __name__ == '__main__':
     main()
 

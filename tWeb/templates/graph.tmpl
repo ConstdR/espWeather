@@ -1,23 +1,42 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>Weather %(id)s</title>
+    <title>Weather %(name)s / %(id)s</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <meta n ''ame="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="refresh" content="450" />
+    <meta http-equiv="refresh" content="%(refreshtime)s; url=%(url)s" />
     <script src="dygraph.js"></script>
     <link rel="stylesheet" href="dygraph.css" />
+    <style>
+        .namedate {width:30em; height:1em; margin:4px; float: left; font-size:30px;font-style:bold; text-align: center}
+        .divSquare {width:10em; height:1em; margin:4px; border:1px solid black; float: left;
+                    font-size:40px;font-style:bold;text-align: center; padding:1em 0;}
+        .temp { color:white;background-color:#25259a}
+        .hum  { color:white;background-color:#3d9e3d}
+        .pres { color:white;background-color:#800080}
+        .volt { color:white;background-color:#008080}
+        .leftname { width:1em; float:left; font-size:40px;font-style:bold;text-align:center;padding:3em 0}
+        .graph { float:left; width:1000px; height:300px;}
+    </style>
 </head>
 <body>
-<center><h2><i>%(tztime)s</i></h2></center><br/>
-<h1>Temperature <span style="color:#25259a">%(temperature).2f</span> °C</h1>
-<div id="temperature" style="width:1000px; height:300px; margin-left:50px"></div>
-<h1>Humidity <span style="color:#3d9e3d">%(humidity).2f</span> %%</h1>
-<div id="humidity" style="width:1000px; height:300px; margin-left:50px"></div>
-<h1>Pressure <span style="color:#800080">%(pressure).2f</span> hPa</h1>
-<div id="pressure" style="width:1000px; height:300px; margin-left:50px"></div>
-<h1>Battery <span style="color:#008080">%(voltage).2f</span> V</h1>
-<div id="battery" style="width:1000px; height:300px; margin-left:50px"></div>
+<div>
+<div class="namedate"><i>%(name)s / %(tztime)s</i></div>
+<div style="clear:both"></div>
+<div class="divSquare temp">%(temperature).2f °C</div>
+<div class="divSquare hum">%(humidity).2f %%</div>
+<div style='clear:both'></div>
+<div class="divSquare pres">%(pressure).2f hPa</div>
+<div class="divSquare volt">%(voltage).2f V</div>
+<div style='clear:both'></div>
+</div>
+<div class="leftname">°C</div><div id="temperature" class="graph"></div>
+<div style="clear:both"></div>
+<div class="leftname">%%</div><div id="humidity" class="graph"></div>
+<div style="clear:both"></div>
+<div class="leftname">hPa</div><div id="pressure" class="graph"></div>
+<div style="clear:both"></div>
+<div class="leftname">V</div><div id="battery"  class="graph"></div>
+<div style="clear:both"></div>
 <script type="text/javascript">
   var csv = '';
   var req = new XMLHttpRequest();
@@ -25,50 +44,34 @@
   req.onreadystatechange = function() { csv = req.responseText; }
   req.send();
   labels = ['Time', 'Temperature', 'Humidity', 'Pressure', 'Battery'];
-  gt = new Dygraph(
-    document.getElementById("temperature"),
-    csv, // "%(id)s/t.csv",
-    {
-    labels: labels,
+  gt = new Dygraph( document.getElementById("temperature"), csv,
+    { labels: labels,
     visibility: [true, false, false, false],
     rollPeriod: 5,
     showRoller: true,
     color: "#25259a"
-    }
-    );
-  g1 = new Dygraph(
-    document.getElementById("humidity"),
-    csv,
-    {
-    labels: labels,
+    });
+  g1 = new Dygraph( document.getElementById("humidity"), csv,
+    { labels: labels,
     visibility: [false, true, false, false],
     rollPeriod: 5,
     showRoller: true,
     color: "#3d9e3d"
-    }
-    );
-  g2 = new Dygraph(
-    document.getElementById("pressure"),
-    csv,
-    {
-    labels: labels,
+    });
+  g2 = new Dygraph( document.getElementById("pressure"), csv,
+    { labels: labels,
     visibility: [false, false, true, false],
     rollPeriod: 5,
     showRoller: true,
     color: "#800080"
-    }
-    );
-  g3 = new Dygraph(
-    document.getElementById("battery"),
-    csv,
-    {
-    labels: labels,
+    });
+  g3 = new Dygraph( document.getElementById("battery"), csv,
+    { labels: labels,
     visibility: [false, false, false, true],
     rollPeriod: 5,
     showRoller: true,
     color:"#008080"
-    }
-    );
+    });
 </script>
 <hr/>
 <h2><i>IP: %(ip)s</i><h2>
