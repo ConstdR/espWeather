@@ -8,4 +8,4 @@ do
     command="$command $headsql"
 done
 
-watch  -n 60 "$command"
+watch -n 30 "$command"

@@ -10,16 +10,18 @@ import logging
 from http.server import *
 from urllib.parse import urlparse, parse_qs
 from datetime import datetime
-import os, sqlite3
+from dateutil.relativedelta import relativedelta
+import os, sqlite3, re
 
 lg = logging.getLogger(__file__)
 args = None
 VMAS = 583
+DEF_RANGE = 7 # in days!!!
 
 def main():
     global args
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', action='count', default=0, dest="verbose_count", 
+    parser.add_argument('-v', action='count', default=0, dest="verbose_count",
                         help="increases log verbosity for each occurence up to 3 times, default - critical")
     parser.add_argument('--log_file', dest="log_file", help="logging file. default - stderr")
     parser.add_argument('--hostname', dest="hostname", default='', help="web hostname (ip address). default ''")
@@ -32,6 +34,7 @@ def main():
 
     loggerConfig(level=args.verbose_count, log_file=args.log_file)
     httpd = HTTPServer((args.hostname, args.port), tHandler)
+    httpd.timeout = 10
     httpd.serve_forever()
 
 class tHandler(BaseHTTPRequestHandler):
@@ -51,7 +54,13 @@ class tHandler(BaseHTTPRequestHandler):
         age = None
         refreshtime = 450
         try:
-            if data[0] in ('dygraph.js', 'dygraph.css'):
+            parsedurl = urlparse(self.path)
+            params = parse_qs(parsedurl.query)
+            lg.debug("Params: %s" % ("%s" % parsedurl.query))
+            (startdate, enddate) = self.get_range(params)
+            lg.debug("Start date: %s End date: %s" % (startdate, enddate))
+            if data[0] in ('dygraph.js', 'jquery.min.js', 'moment.min.js', 'daterangepicker.min.js',
+                           'dygraph.css', 'daterangepicker.css'):
                 age = 43200
                 txt = open('%s/templates/%s' % (args.datadir, data[0]), 'r').read()
                 if data[0].endswith('.css'):
@@ -64,44 +73,64 @@ class tHandler(BaseHTTPRequestHandler):
             elif len(data) > 1 and data[1].endswith('.csv'):
                 dbh = get_dbh(data[0])
                 content_type = 'text/csv'
-                res = dbh.execute("select *, datetime(timedate, '%s hours') as tztime from data order by timedate"
-                                   % args.timezone)
+                res = dbh.execute("""select *, datetime(timedate, '%(tz)s hours') as tztime from data
+                                     where timedate >= datetime(?, '%(tzn)s hours') and
+                                           timedate <= datetime(datetime(?, '%(tz)s hours'), '1 day')
+                                  order by timedate"""
+                                   % {'tz':args.timezone, 'tzn':int(args.timezone)*-1 }, (startdate, enddate))
                 rows = res.fetchall()
                 for row in rows:
-                    txt = txt + "%(tztime)s,%(temperature)s,%(humidity)s,%(pressure)s,%(voltage)s\n" % row 
+                    txt = txt + "%(tztime)s,%(temperature)s,%(humidity)s,%(pressure)s,%(voltage)s\n" % row
                 dbh.close()
             else:
                 dbh = get_dbh(data[0])
                 # rename?
-                parsedurl = urlparse(self.path)
-                params = parse_qs(parsedurl.query)
                 if 'rename' in params.keys():
-                        newname = params['rename'][0]
-                        dbh.execute("insert or replace into params values (?, ?)", ('name', newname))
-                        dbh.commit()
-                        refreshtime=0
+                    newname = params['rename'][0]
+                    dbh.execute("insert or replace into params values (?, ?)", ('name', newname))
+                    dbh.commit()
+                    refreshtime=0
                 res = dbh.execute("""select case when params.value is NULL then '__new__' else params.value end as name,
-                                            data.*, datetime(timedate, '%s hours') as tztime 
+                                            data.*, datetime(data.timedate, '%(timezone)s hours') as tztime
                                      from data
                                      left join params on params.name='name'
                                      order by timedate desc limit 1"""
-                                  % args.timezone )
+                                  % {'timezone':args.timezone } )
                 row = res.fetchone()
                 row['id'] = data[0]
                 row['refreshtime'] = refreshtime
                 row['url'] = parsedurl.path
+                row['startdate'] = startdate
+                row['enddate'] = enddate
                 lg.debug(row)
                 tmpl = open('%s/templates/graph.tmpl' % args.datadir, 'r').read()
                 txt = tmpl % row
                 content_type = 'text/html'
                 dbh.close()
         except Exception as e:
-            lg.error(str(e))
+            lg.error(e)
             self.code = 404
             txt = 'Error'
         btxt = bytearray(txt, 'UTF-8')
         self.do_HEAD(content_type, len(btxt), age)
         self.wfile.write(btxt)
+
+    def get_range(self, params):
+        daterange = None
+        try:
+            lg.debug("Daterange: %s" % params['daterange'])
+            r = re.match('(\d{4}-\d\d-\d\d).-.(\d{4}-\d\d-\d\d)', params['daterange'][0])
+            daterange = r.groups()
+        except Exception as e:
+            lg.info('Daterange error %s' % e)
+            daterange = None
+
+        if not daterange :
+            lg.debug("Use default date range")
+            now = datetime.now() + relativedelta(hours=int(args.timezone))
+            start = now - relativedelta(days=DEF_RANGE)
+            daterange =(start.strftime('%Y-%m-%d'), now.strftime('%Y-%m-%d'))
+        return daterange
 
     def do_HEAD(self, content_type="text/text", content_length=None, age=None):
         self.send_response(self.code)
@@ -169,7 +198,7 @@ def get_dbh(name, create=False):
                                         temperature real, humidity real,
                                         pressure real, voltage real,
                                         message text)""")
-        c.execute("CREATE TABLE params (name texti primary key, value text)")
+        c.execute("CREATE TABLE params (name text primary key, value text)")
         dbh.commit()
     dbh.row_factory = dict_factory
     return dbh
@@ -192,4 +221,4 @@ def loggerConfig(level=0, log_file=None):
 if __name__ == '__main__':
     main()
 
-# vim: ai ts=4 sts=4 et sw=4 ft=python 
+# vim: ai ts=4 sts=4 et sw=4 ft=python

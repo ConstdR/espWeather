@@ -18,7 +18,7 @@ bme = BME280.BME280(i2c=i2c)
 lvlpin = machine.ADC(machine.Pin(34))
 MEASURE_COUNT = 1
 MEASURE_TIMEOUT = 1
-DEEP_SLEEP = 900000 # 900000 == 15 min
+DEEP_SLEEP = 300000 # 900000 == 15 min
 FAKE_SLEEP = 0 # 1 -- no really go to deep sleep
 
 def main():
