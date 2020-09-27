@@ -30,6 +30,7 @@
 <div class="namedate"><i><span id="espwname" onClick="startRename()">%(name)s</span>
 <span id="espwrename" style="display:none;">
 <input type=text name="rename" value="%(name)s"/>
+<input type=hidden name="daterange" value="%(startdate)s - %(enddate)s">
 <input type="submit" value="ok"/>
 </span>
 </form>
@@ -44,13 +45,14 @@
 <div>
 <div style="text-align:center;width:1000px">
 <form id="rangeform" method="GET">
-<input type="text" name="daterange" value="%(startdate)s - %(enddate)s" />
+<input type="text" id="dates" name="daterange" value="%(startdate)s - %(enddate)s" />
 <input type="submit" value="ok"/>
 </form>
 <script>
 $(function() {
-  $('input[name="daterange"]').daterangepicker({
+  $('#dates').daterangepicker({
     autoApply: true,
+    opens:'center',
     locale: { format: 'YYYY-MM-DD' }
   });
   $('input[name="daterange"]').on('apply.daterangepicker', function(ev, picker) {
