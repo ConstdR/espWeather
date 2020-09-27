@@ -12,20 +12,17 @@ CFG_NAME = '_config'
 pled = machine.Pin(21)
 led = machine.PWM(pled, freq=50, duty=0)
 
-i2c = machine.I2C(scl=Pin(22), sda=Pin(23), freq=10000)
-bme = BME280.BME280(i2c=i2c)
-
 lvlpin = machine.ADC(machine.Pin(34))
 MEASURE_COUNT = 1
 MEASURE_TIMEOUT = 1
-DEEP_SLEEP = 300000 # 900000 == 15 min
+DEEP_SLEEP = 900000 # 900000 == 15 min
 FAKE_SLEEP = 0 # 1 -- no really go to deep sleep
 
 def main():
     wdt = machine.WDT(timeout=int(DEEP_SLEEP+DEEP_SLEEP/2))
     while True:
-        (t, h, p, v) = measure()
-        message = 'WakeReason:%s' % machine.wake_reason()
+        (t, h, p, v, msg) = measure()
+        message = 'WakeReason:%s' % machine.wake_reason() + ( ',' + msg if msg else '' ) 
         url = URL % (get_hostport(), myID, t, h, p, v, message)
         print("Get: %s" % url)
         try:
@@ -46,14 +43,17 @@ def main():
             machine.deepsleep(DEEP_SLEEP)
         blink() # bells and whistles
 
-def measure(res = [0, 0, 0, 0]):
+def measure(res = [0, 0, 0, 0, '']):
     try:
+        i2c = machine.I2C(scl=Pin(22), sda=Pin(23), freq=10000)
+        bme = BME280.BME280(i2c=i2c)
         lvlpin.width(lvlpin.WIDTH_12BIT)
         lvlpin.atten(lvlpin.ATTN_11DB)
-        res = ( bme.temperature, bme.humidity, bme.pressure, adc_read(lvlpin))
+        res = ( bme.temperature, bme.humidity, bme.pressure, adc_read(lvlpin), '')
         print("Measuring: %s", res)
     except Exception as e:
-        print("Measuring error: %s" % e)
+        res[4]="MeasuringError"
+        print(str(e))
     return res
 
 def adc_read(adc):
