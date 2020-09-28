@@ -16,7 +16,7 @@ lvlpin = machine.ADC(machine.Pin(34))
 MEASURE_COUNT = 1
 MEASURE_TIMEOUT = 1
 DEEP_SLEEP = 900000 # 900000 == 15 min
-FAKE_SLEEP = 0 # 1 -- no really go to deep sleep
+FAKE_SLEEP = 0 # 1 -- no really go to deep sleep (for debug only)
 
 def main():
     wdt = machine.WDT(timeout=int(DEEP_SLEEP+DEEP_SLEEP/2))

@@ -5,10 +5,10 @@ esp.osdebug(None)
 import os, time, gc
 from machine import Pin
 
-AP_PIN = 35
+AP_PIN = 35 # ground this pin to activate AP mode on reset
 CFG_NAME = '_config'
-CONNECT_WAIT = 10
-TS_NAME = 'timestamp'
+CONNECT_WAIT = 10 # wait seconds to connect
+TS_NAME = '_timestamp'
 NTP_SYNC_PERIOD = 43200  # 12 hours
 
 def do_connect():
