@@ -3,13 +3,9 @@ import esp
 esp.osdebug(None)
 
 import os, time, gc
-from machine import Pin
+import machine
 
-AP_PIN = 35 # ground this pin to activate AP mode on reset
-CFG_NAME = '_config'
-CONNECT_WAIT = 10 # wait seconds to connect
-TS_NAME = '_timestamp'
-NTP_SYNC_PERIOD = 43200  # 12 hours
+from espwconst import *
 
 def do_connect():
     (essid, pswd) = get_credentials()
@@ -39,7 +35,7 @@ def get_credentials():
     """
     (essid, pswd) = (None,None)
     try:
-        appin = Pin(AP_PIN, Pin.IN)
+        appin = machine.Pin(AP_PIN, machine.Pin.IN)
         if not appin.value():
             # force run AP by AP_PIN == 0
             raise Exception("Force AP by low %s pin" % AP_PIN) 
@@ -60,7 +56,7 @@ def sync_time():
     """
     doSync = True
     try:
-        diff = abs( time.time() - os.stat(TS_NAME)[-1] )
+        diff = abs(time.time() - os.stat(TS_NAME)[-1] )
         print("Time: %s Diff: %s" % (time.time(), diff))
         if diff < NTP_SYNC_PERIOD:
             doSync = False
@@ -72,16 +68,30 @@ def sync_time():
             import ntptime
             ntptime.settime()
             fh = open(TS_NAME, 'w')
-            fh.write(str(time.time()))
+            fh.write(str(ntptime.time()))
             fh.close()
     except Exception as e:
         print("NTP sync error: %s" % e)
     print('Time: %s' % str(time.localtime()))
 
+def pwrchk():
+    """
+        Check battery powering level is enough
+    """
+    lvlpin = machine.ADC(machine.Pin(LVL_PIN))
+    lvlpin.width(lvlpin.WIDTH_12BIT)
+    lvlpin.atten(lvlpin.ATTN_11DB)
+    lvl = lvlpin.read()
+    print ("Power: %s" % lvl)
+    return True if lvl > LVL_LOWPWR else False
+
 def run():
     gc.enable()
     gc.collect()
-    if ( do_connect()) :
-        sync_time()
+    if pwrchk():
+        if (do_connect()) :
+            sync_time()
+    else:
+        print("Low power, no connection")
 
 run()
