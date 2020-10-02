@@ -12,6 +12,7 @@ from urllib.parse import urlparse, parse_qs
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import os, sqlite3, re
+import json
 
 lg = logging.getLogger(__file__)
 args = None
@@ -141,6 +142,27 @@ class tHandler(BaseHTTPRequestHandler):
             self.send_header("Cache-Control", "max-age=%s" % age)
         self.end_headers()
 
+    def do_POST(self):
+        parsedurl = urlparse(self.path)
+        parsedpath = parsedurl.path.split('/')
+        parsedpath.pop(0)
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        lg.debug("Post path: %s, length: %s" % (parsedpath, content_length))
+        jdata = json.loads(post_data)
+        lg.debug("Post last data: %s" % jdata['measures'][-1])
+        dbh = get_dbh(parsedpath[1], True)
+        c = dbh.cursor()
+        for m in jdata['measures']:
+            vals = m.split(',')
+            vals.insert(1, self.client_address[0])
+            vals[5] = float(vals[5]) / VMAS
+            c.execute('insert or replace into data values(?,?,?,?,?,?,?)', vals)
+        dbh.commit()
+        dbh.close()
+        self.do_HEAD()
+        self.wfile.write(b'OK.')
+
     def do_GET(self):
         parsedurl = urlparse(self.path)
         parsedpath = parsedurl.path.split('/')
@@ -155,35 +177,10 @@ class tHandler(BaseHTTPRequestHandler):
                 raise Exception("Empty path.")
         except Exception as e:
             lg.debug(str(e))
-            try:
-                params = parse_qs(parsedurl.query)
-                client_ip = self.client_address[0]
-                lg.debug((client_ip, params))
-                self.code = 200
-
-                if 'id' in params.keys():
-                    remoteid = params['id'][0]
-                    temp = params['t'][0] if 't' in params.keys() else '0'
-                    humidity = params['h'][0] if 'h' in params.keys() else '0'
-                    pressure = params['p'][0] if 'p' in params.keys() else '0'
-                    voltage = float(params['v'][0])/VMAS if 'v' in params.keys() else '0'
-                    message = params['m'][0] if 'm' in params.keys() else ''
-                    timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-                    dbh = get_dbh(remoteid, True)
-                    c = dbh.cursor()
-                    c.execute('insert or replace into data values(?,?,?,?,?,?,?)',
-                              (timestamp, client_ip, temp, humidity, pressure, voltage, message))
-                    dbh.commit()
-                    dbh.close()
-                else:
-                    lg.debug("No id key found")
-                    self.code = 400
-            except Exception as e:
-                lg.error("GET error: %s" % e )
-                self.code = 500
-
+            lg.error("GET error: %s" % e )
+            self.code = 404
             self.do_HEAD()
-            self.wfile.write(b'OK.')
+            self.wfile.write(b'Error')
         self.wfile.flush()
         self.connection.close()
 

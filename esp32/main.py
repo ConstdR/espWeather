@@ -15,15 +15,15 @@ def main():
         wdt = machine.WDT(timeout=int(DEEP_SLEEP+DEEP_SLEEP/2))
     while True:
         (t, h, p, v, msg) = measure()
-        message = 'WakeReason:%s' % machine.wake_reason() + ( ',' + msg if msg else '' ) 
-        url = URL % (get_hostport(), MY_ID, t, h, p, v, message)
-        print("Get: %s" % url)
+        message = 'WakeReason:%s' % machine.wake_reason() + ( ' ' + msg if msg else '' )
+        dat = update_data([t, h, p, v, message])
         try:
-            res = urequests.get(url)
-            print(res.text)
+            print("Post id: %s Length:%s" % (MY_ID, len(dat)))
+            res = urequests.post('http://%s/id/%s' % (get_hostport(), MY_ID), 
+                                json={'measures':dat})
         except Exception as e:
-            print("Exception: %s" % (e))
-            pass
+            print("POST exception: %s" % str(e))
+
         print('Deepsleep for %s sec.' % str(DEEP_SLEEP/1000))
         if FAKE_SLEEP :
             sleeptime = float(DEEP_SLEEP/100000)
@@ -33,6 +33,19 @@ def main():
         else:
             wdt.feed()
             machine.deepsleep(DEEP_SLEEP)
+
+def update_data(d):
+    open(DATA_FILE, 'a').close()
+    data = [line.strip() for line in open(DATA_FILE, 'r')]
+    tstump = '%s-%.2d-%.2d %.2d:%.2d:%.2d' % time.localtime()[0:6]
+    d.insert(0, tstump)
+    s = ','.join([str(e) for e in d ])
+    data.append(s)
+    if len(data) > DATA_LENGTH:
+        data.pop(0)
+    with open(DATA_FILE,'w') as f:
+        f.write('\n'.join(data))
+    return data
 
 def measure(res = [0, 0, 0, 0, '']):
     try:
@@ -44,7 +57,7 @@ def measure(res = [0, 0, 0, 0, '']):
         lvl = adc_read(lvlpin)
         msg = 'Low power.' if lvl < LVL_LOWPWR else ''
         res = (bme.temperature, bme.humidity, bme.pressure, adc_read(lvlpin), msg)
-        print("Measuring: %s", res)
+        print("Measuring: %s" % str(res))
     except Exception as e:
         res[4]="MeasuringError"
         print(str(e))
