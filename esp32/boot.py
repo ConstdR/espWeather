@@ -2,7 +2,7 @@
 import esp
 esp.osdebug(None)
 
-import os, time, gc
+import os, time
 import machine
 
 from espwconst import *
@@ -86,8 +86,6 @@ def pwrchk():
     return True if lvl > LVL_LOWPWR else False
 
 def run():
-    gc.enable()
-    gc.collect()
     if pwrchk():
         if (do_connect()) :
             sync_time()

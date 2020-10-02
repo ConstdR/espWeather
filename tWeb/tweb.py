@@ -15,7 +15,7 @@ import os, sqlite3, re
 
 lg = logging.getLogger(__file__)
 args = None
-VMAS = 583
+VMAS = 580
 DEF_RANGE = 7 # in days!!!
 
 def main():

@@ -2,7 +2,6 @@ import BME280
 import machine
 import time
 import urequests
-import gc
 
 from espwconst import *
 
@@ -25,9 +24,7 @@ def main():
         except Exception as e:
             print("Exception: %s" % (e))
             pass
-        blink() # bells and whistles
         print('Deepsleep for %s sec.' % str(DEEP_SLEEP/1000))
-        gc.collect()
         if FAKE_SLEEP :
             sleeptime = float(DEEP_SLEEP/100000)
             print("Fake sleep for %s" % sleeptime)
@@ -36,7 +33,6 @@ def main():
         else:
             wdt.feed()
             machine.deepsleep(DEEP_SLEEP)
-        blink() # bells and whistles
 
 def measure(res = [0, 0, 0, 0, '']):
     try:
