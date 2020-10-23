@@ -148,9 +148,9 @@ class tHandler(BaseHTTPRequestHandler):
         parsedpath.pop(0)
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
-        lg.debug("Post path: %s, length: %s" % (parsedpath, content_length))
+        lg.info("Post path: %s, length: %s" % (parsedpath, content_length))
         jdata = json.loads(post_data)
-        lg.debug("Post last data: %s" % jdata['measures'][-1])
+        lg.info("Post last data: %s" % jdata['measures'][-1])
         dbh = get_dbh(parsedpath[1], True)
         c = dbh.cursor()
         for m in jdata['measures']:

@@ -38,6 +38,7 @@ def update_data(d):
     open(DATA_FILE, 'a').close()
     data = [line.strip() for line in open(DATA_FILE, 'r')]
     tstump = '%s-%.2d-%.2d %.2d:%.2d:%.2d' % time.localtime()[0:6]
+    print("Timestamp: %s" % tstump)
     d.insert(0, tstump)
     s = ','.join([str(e) for e in d ])
     data.append(s)
