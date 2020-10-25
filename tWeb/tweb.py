@@ -28,7 +28,6 @@ def main():
     parser.add_argument('--hostname', dest="hostname", default='', help="web hostname (ip address). default ''")
     parser.add_argument('--port', dest="port", default=8088, help="web port. default 8088")
     parser.add_argument('--datadir', dest='datadir', default='./', help="diredtory to store data. default: './'")
-    parser.add_argument('--timezone', dest='timezone', default='+2', help="timezone in hours i.e: +2 or -8 and etc. default: '+2'")
     parser.add_argument('--dir', dest="dir", default='./', help="directory to store params. default: './'")
 
     args = parser.parse_args()
@@ -74,11 +73,10 @@ class tHandler(BaseHTTPRequestHandler):
             elif len(data) > 1 and data[1].endswith('.csv'):
                 dbh = get_dbh(data[0])
                 content_type = 'text/csv'
-                res = dbh.execute("""select *, datetime(timedate, '%(tz)s hours') as tztime from data
-                                     where timedate >= datetime(?, '%(tzn)s hours') and
-                                           timedate <= datetime(datetime(?, '%(tz)s hours'), '1 day')
-                                  order by timedate"""
-                                   % {'tz':args.timezone, 'tzn':int(args.timezone)*-1 }, (startdate, enddate))
+                res = dbh.execute("""select *, datetime(timedate, 'localtime') as tztime from data
+                                     where timedate >= datetime(?, 'localtime') and
+                                           timedate <= datetime(datetime(?, 'localtime'), '1 day')
+                                  order by timedate""", (startdate, enddate))
                 rows = res.fetchall()
                 for row in rows:
                     txt = txt + "%(tztime)s,%(temperature)s,%(humidity)s,%(pressure)s,%(voltage)s\n" % row
@@ -92,11 +90,10 @@ class tHandler(BaseHTTPRequestHandler):
                     dbh.commit()
                     refreshtime=0
                 res = dbh.execute("""select case when params.value is NULL then '__new__' else params.value end as name,
-                                            data.*, datetime(data.timedate, '%(timezone)s hours') as tztime
+                                            data.*, datetime(data.timedate, 'localtime') as tztime
                                      from data
                                      left join params on params.name='name'
-                                     order by timedate desc limit 1"""
-                                  % {'timezone':args.timezone } )
+                                     order by timedate desc limit 1""")
                 row = res.fetchone()
                 row['id'] = data[0]
                 row['refreshtime'] = refreshtime
@@ -128,7 +125,7 @@ class tHandler(BaseHTTPRequestHandler):
 
         if not daterange :
             lg.debug("Use default date range")
-            now = datetime.now() + relativedelta(hours=int(args.timezone))
+            now = datetime.now()
             start = now - relativedelta(days=DEF_RANGE)
             daterange =(start.strftime('%Y-%m-%d'), now.strftime('%Y-%m-%d'))
         return daterange
