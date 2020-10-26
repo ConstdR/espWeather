@@ -53,10 +53,10 @@ def measure(res = [0, 0, 0, 0, '']):
         lvlpin = machine.ADC(machine.Pin(LVL_PIN))
         lvlpin.width(lvlpin.WIDTH_12BIT)
         lvlpin.atten(lvlpin.ATTN_11DB)
-        res[3] = adc_read(lvlpin)
+        lvl = adc_read(lvlpin)
+        msg = 'Low power.' if lvl < LVL_LOWPWR else ''
         i2c = machine.I2C(scl=machine.Pin(I2CSCL_PIN), sda=machine.Pin(I2CSDA_PIN), freq=I2C_FREQ)
         bme = BME280.BME280(i2c=i2c)
-        msg = 'Low power.' if lvl < LVL_LOWPWR else ''
         res = (bme.temperature, bme.humidity, bme.pressure, lvl, msg)
         print("Measuring: %s" % str(res))
     except Exception as e:
