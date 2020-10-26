@@ -89,6 +89,7 @@ class tHandler(BaseHTTPRequestHandler):
                     dbh.execute("insert or replace into params values (?, ?)", ('name', newname))
                     dbh.commit()
                     refreshtime=0
+                    lg.info("Rename to '%s'" % newname)
                 res = dbh.execute("""select case when params.value is NULL then '__new__' else params.value end as name,
                                             data.*, datetime(data.timedate, 'localtime') as tztime
                                      from data
