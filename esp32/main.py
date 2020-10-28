@@ -18,7 +18,7 @@ def main():
         message = 'WakeReason:%s' % machine.wake_reason() + ( ' ' + msg if msg else '' )
         dat = update_data([t, h, p, v, message])
         try:
-            print("Post id: %s Length:%s" % (MY_ID, len(dat)))
+            print("Post my_id: %s Length:%s" % (MY_ID, len(dat)))
             res = urequests.post('http://%s/id/%s' % (get_hostport(), MY_ID), 
                                 json={'measures':dat})
         except Exception as e:
@@ -58,10 +58,10 @@ def measure(res = [0, 0, 0, 0, '']):
         i2c = machine.I2C(scl=machine.Pin(I2CSCL_PIN), sda=machine.Pin(I2CSDA_PIN), freq=I2C_FREQ)
         bme = BME280.BME280(i2c=i2c)
         res = (bme.temperature, bme.humidity, bme.pressure, lvl, msg)
-        print("Measuring: %s" % str(res))
     except Exception as e:
         res[4]="MeasuringError"
-        print(str(e))
+        print("Measurin Error: %s" % str(e))
+    print("Measuring: %s" % str(res))
     return res
 
 def adc_read(adc):
