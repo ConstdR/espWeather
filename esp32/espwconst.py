@@ -9,7 +9,7 @@ TS_NAME = '_timestamp' # timestamp for ntp
 DATA_FILE = '_data' # measuring storage
 DATA_LENGTH = 128 # number of records to store
 CONNECT_WAIT = 10 # wait seconds to connect
-NTP_SYNC_PERIOD = 43200  # 12 hours
+NTP_SYNC_PERIOD = 10800 # 3 hours
 LVL_PIN = 34 # 500k/500k to power middle node to check power level
 LVL_LOWPWR = 1880 # low power level ~= 3.15V
 LED_PIN = 21
