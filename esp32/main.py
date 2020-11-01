@@ -53,11 +53,11 @@ def measure(res = [0, 0, 0, 0, '']):
         lvlpin = machine.ADC(machine.Pin(LVL_PIN))
         lvlpin.width(lvlpin.WIDTH_12BIT)
         lvlpin.atten(lvlpin.ATTN_11DB)
-        lvl = adc_read(lvlpin)
+        res[3] = adc_read(lvlpin)
         msg = 'Low power.' if lvl < LVL_LOWPWR else ''
         i2c = machine.I2C(scl=machine.Pin(I2CSCL_PIN), sda=machine.Pin(I2CSDA_PIN), freq=I2C_FREQ)
         bme = BME280.BME280(i2c=i2c)
-        res = (bme.temperature, bme.humidity, bme.pressure, lvl, msg)
+        res = (bme.temperature, bme.humidity, bme.pressure, res[3], msg)
     except Exception as e:
         res[4]="MeasuringError"
         print("Measurin Error: %s" % str(e))
@@ -87,6 +87,6 @@ def get_hostport():
 def blink():
     for i in range(6):
         led.duty(20) if led.duty() == 0 else led.duty(0)
-        time.sleep(.5)
+        time.sleep(.2)
 
 main()
