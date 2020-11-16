@@ -147,6 +147,13 @@ class tHandler(BaseHTTPRequestHandler):
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         lg.info("Post path: %s, length: %s" % (parsedpath, content_length))
+
+        if parsedpath[0] != 'id':
+            lg.warning('Bad POST request: %s' % self.path)
+            self.code = 400
+            self.do_HEAD()
+            return
+
         jdata = json.loads(post_data)
         lg.info("Post last data: %s" % jdata['measures'][-1])
         dbh = get_dbh(parsedpath[1], True)
