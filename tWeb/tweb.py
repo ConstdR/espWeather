@@ -120,11 +120,12 @@ class tHandler(BaseHTTPRequestHandler):
 
     def get_range(self, params):
         daterange = None
-        default = False
+        default = True
         try:
             lg.debug("Daterange: %s" % params['daterange'])
             r = re.match('(\d{4}-\d\d-\d\d).-.(\d{4}-\d\d-\d\d)', params['daterange'][0])
             daterange = r.groups()
+            default = False
         except Exception as e:
             lg.info('Daterange error %s' % e)
             daterange = None
@@ -134,7 +135,6 @@ class tHandler(BaseHTTPRequestHandler):
             now = datetime.now()
             start = now - relativedelta(days=DEF_RANGE)
             daterange =(start.strftime('%Y-%m-%d'), now.strftime('%Y-%m-%d'))
-            default = True
         return daterange + (default,)
 
     def do_HEAD(self, content_type="text/text", content_length=None, age=None):
