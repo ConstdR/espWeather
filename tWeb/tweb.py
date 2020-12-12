@@ -57,8 +57,8 @@ class tHandler(BaseHTTPRequestHandler):
             parsedurl = urlparse(self.path)
             params = parse_qs(parsedurl.query)
             lg.debug("Params: %s" % ("%s" % parsedurl.query))
-            (startdate, enddate) = self.get_range(params)
-            lg.debug("Start date: %s End date: %s" % (startdate, enddate))
+            (startdate, enddate, default_range) = self.get_range(params)
+            lg.debug("Start date: %s End date: %s Default: %s" % (startdate, enddate, default_range))
             if data[0] in ('dygraph.js', 'jquery.min.js', 'moment.min.js', 'daterangepicker.min.js',
                            'dygraph.css', 'daterangepicker.css'):
                 age = 43200
@@ -103,6 +103,10 @@ class tHandler(BaseHTTPRequestHandler):
                 row['enddate'] = enddate
                 lg.debug(row)
                 tmpl = open('%s/templates/graph.tmpl' % args.datadir, 'r').read()
+                if not default_range:
+                    row['daterange'] = "daterange=%(startdate)s+-+%(enddate)s" % row
+                else:
+                    row['daterange'] = ''
                 txt = tmpl % row
                 content_type = 'text/html'
                 dbh.close()
@@ -116,6 +120,7 @@ class tHandler(BaseHTTPRequestHandler):
 
     def get_range(self, params):
         daterange = None
+        default = False
         try:
             lg.debug("Daterange: %s" % params['daterange'])
             r = re.match('(\d{4}-\d\d-\d\d).-.(\d{4}-\d\d-\d\d)', params['daterange'][0])
@@ -129,7 +134,8 @@ class tHandler(BaseHTTPRequestHandler):
             now = datetime.now()
             start = now - relativedelta(days=DEF_RANGE)
             daterange =(start.strftime('%Y-%m-%d'), now.strftime('%Y-%m-%d'))
-        return daterange
+            default = True
+        return daterange + (default,)
 
     def do_HEAD(self, content_type="text/text", content_length=None, age=None):
         self.send_response(self.code)
