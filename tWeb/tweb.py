@@ -56,9 +56,8 @@ class tHandler(BaseHTTPRequestHandler):
         try:
             parsedurl = urlparse(self.path)
             params = parse_qs(parsedurl.query)
-            lg.debug("Params: %s" % ("%s" % parsedurl.query))
-            (startdate, enddate, default_range) = self.get_range(params)
-            lg.debug("Start date: %s End date: %s Default: %s" % (startdate, enddate, default_range))
+            if parsedurl.query:
+                lg.debug("Params: %s" % ("%s" % parsedurl.query))
             if data[0] in ('dygraph.js', 'jquery.min.js', 'moment.min.js', 'daterangepicker.min.js',
                            'dygraph.css', 'daterangepicker.css'):
                 age = 43200
@@ -69,47 +68,49 @@ class tHandler(BaseHTTPRequestHandler):
                     content_type = 'text/javascript'
             elif data[0] == 'favicon.ico':
                 self.show_favicon_ico()
-                return
-            elif len(data) > 1 and data[1].endswith('.csv'):
-                dbh = get_dbh(data[0])
-                content_type = 'text/csv'
-                res = dbh.execute("""select *, datetime(timedate, 'localtime') as tztime from data
-                                     where timedate >= datetime(?, 'localtime') and
-                                           timedate <= datetime(datetime(?, 'localtime'), '1 day')
-                                  order by timedate""", (startdate, enddate))
-                rows = res.fetchall()
-                for row in rows:
-                    txt = txt + "%(tztime)s,%(temperature)s,%(humidity)s,%(pressure)s,%(voltage)s\n" % row
-                dbh.close()
             else:
-                dbh = get_dbh(data[0])
-                # rename?
-                if 'rename' in params.keys():
-                    newname = params['rename'][0]
-                    dbh.execute("insert or replace into params values (?, ?)", ('name', newname))
-                    dbh.commit()
-                    refreshtime=0
-                    lg.info("Rename to '%s'" % newname)
-                res = dbh.execute("""select case when params.value is NULL then '__new__' else params.value end as name,
-                                            data.*, datetime(data.timedate, 'localtime') as tztime
-                                     from data
-                                     left join params on params.name='name'
-                                     order by timedate desc limit 1""")
-                row = res.fetchone()
-                row['id'] = data[0]
-                row['refreshtime'] = refreshtime
-                row['url'] = parsedurl.path
-                row['startdate'] = startdate
-                row['enddate'] = enddate
-                lg.debug(row)
-                tmpl = open('%s/templates/graph.tmpl' % args.datadir, 'r').read()
-                if not default_range:
-                    row['daterange'] = "daterange=%(startdate)s+-+%(enddate)s" % row
+                (startdate, enddate, default_range) = self.get_range(params)
+                lg.debug("Start date: %s End date: %s Default: %s" % (startdate, enddate, default_range))
+                if len(data) > 1 and data[1].endswith('.csv'):
+                    dbh = get_dbh(data[0])
+                    content_type = 'text/csv'
+                    res = dbh.execute("""select *, datetime(timedate, 'localtime') as tztime from data
+                                         where timedate >= datetime(?, 'localtime') and
+                                               timedate <= datetime(datetime(?, 'localtime'), '1 day')
+                                      order by timedate""", (startdate, enddate))
+                    rows = res.fetchall()
+                    for row in rows:
+                        txt = txt + "%(tztime)s,%(temperature)s,%(humidity)s,%(pressure)s,%(voltage)s\n" % row
+                    dbh.close()
                 else:
-                    row['daterange'] = ''
-                txt = tmpl % row
-                content_type = 'text/html'
-                dbh.close()
+                    dbh = get_dbh(data[0])
+                    # rename?
+                    if 'rename' in params.keys():
+                        newname = params['rename'][0]
+                        dbh.execute("insert or replace into params values (?, ?)", ('name', newname))
+                        dbh.commit()
+                        refreshtime=0
+                        lg.info("Rename to '%s'" % newname)
+                    res = dbh.execute("""select case when params.value is NULL then '__new__' else params.value end as name,
+                                                data.*, datetime(data.timedate, 'localtime') as tztime
+                                         from data
+                                         left join params on params.name='name'
+                                         order by timedate desc limit 1""")
+                    row = res.fetchone()
+                    row['id'] = data[0]
+                    row['refreshtime'] = refreshtime
+                    row['url'] = parsedurl.path
+                    row['startdate'] = startdate
+                    row['enddate'] = enddate
+                    lg.debug(row)
+                    tmpl = open('%s/templates/graph.tmpl' % args.datadir, 'r').read()
+                    if not default_range:
+                        row['daterange'] = "daterange=%(startdate)s+-+%(enddate)s" % row
+                    else:
+                        row['daterange'] = ''
+                    txt = tmpl % row
+                    content_type = 'text/html'
+                    dbh.close()
         except Exception as e:
             lg.error(e)
             self.code = 404
