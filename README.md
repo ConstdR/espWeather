@@ -2,13 +2,13 @@ Here we go with weather sensor based on ESP32 SoC.
 
 Board powered by Li-Ion 18650 battery.
 
-BME280 sensor connection: SDA - Pin 23, SCL - Pin 22
+BME280 sensor connection: SDA - Pin 21, SCL - Pin 22 (can be configured in espwconst.py)
 
 AP-configuration mode starts automatically, if no config file found or by reset board with lowered Pin 35.
 At this mode you can connect to WiFi AP with name like ESP_XXXXX w/o password and set your local WiFi credentials and IP:PORT of the server where to send data.
 Time automatically adjusted with NTP server.
 
-Pin 34 reads adc from 470kOm/470kOm devider between + Li-Ion and GND pin.
+Pin 34 reads adc from 220kOm/220kOm devider between + Li-Ion and GND pin.
 
 tWeb.py -- simple web server to store data recieved from ESP32 modules and show current values and history graphs.
 Storage format: sqlite3.
@@ -31,6 +31,7 @@ Put files to ESP32
 # ~/.local/bin/ampy -p /dev/ttyUSB0 put ap.py
 # ~/.local/bin/ampy -p /dev/ttyUSB0 put main.py
 # ~/.local/bin/ampy -p /dev/ttyUSB0 put BME280.py
+# ~/.local/bin/ampy -p /dev/ttyUSB0 put espwconst.py
 
 Connect to board on USB:
 

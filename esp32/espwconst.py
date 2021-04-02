@@ -16,5 +16,5 @@ LED_PIN = 5
 DEEP_SLEEP = 900000 # 900000 == 15 min
 FAKE_SLEEP = 0 # 1 -- no really go to deep sleep (for debug only)
 I2CSCL_PIN = 22
-I2CSDA_PIN = 23
+I2CSDA_PIN = 21
 I2C_FREQ = 10000
