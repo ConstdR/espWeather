@@ -44,6 +44,7 @@
 </div>
 <div>
 <div style="text-align:center;width:1000px">
+<div id="countdown" style="float:left">%(refreshtime)s</div>
 <form id="rangeform" method="GET">
 <input type="text" id="dates" name="daterange" value="%(startdate)s - %(enddate)s" />
 </form>
@@ -68,6 +69,12 @@ $(function() {
     $('#rangeform').submit()
   });
 });
+setInterval(function() {
+   s = $("#countdown").text()
+   --s
+   $("#countdown").text(s)
+}, 1000);
+
 </script>
 </div>
 <div class="leftname">°C</div><div id="temperature" class="graph"></div>

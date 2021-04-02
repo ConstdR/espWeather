@@ -3,6 +3,7 @@ import network
 import machine
 import time
 import socket
+import re
 
 CONNECT_WAIT = 10
 CFG_NAME = '_config'
@@ -88,6 +89,7 @@ def process_request(request):
         else:
             resdict['message'] = "%s connected." % resdict['essid']
             # store credentials
+            find_servers(resdict['srv'], resdict['port'])
             try:
                 fh = open(CFG_NAME, 'w')
                 fh.write(resdict['essid'] + '\n')
@@ -102,6 +104,16 @@ def process_request(request):
 
     print("Res dict: %s" % resdict)
     return resdict
+
+def find_servers(ip, port):
+    try:
+        m = re.match("(.*\.)\d*$", ip).group(1)
+        print("Network: %s" % m)
+        for i in range(1,256):
+            cip = "%s%s" % (m, i)
+            print("Current IP: %s" % cip)
+    except Exception as e:
+        print("Find server error: %s" % str(e))
 
 def web_page(essid='essid', pswd='password', server='192.168.1.5', port='8088', message=''):
   html = """<html><body><h1>ESP: %s </h1>""" % ap.config('essid')
@@ -119,7 +131,7 @@ def web_page(essid='essid', pswd='password', server='192.168.1.5', port='8088', 
   return html
 
 def unquote(string):
-    """unquote('abc%20def') -> b'abc def'."""
+    """unquote('abc%20de+f') -> b'abc de f'."""
     global _hextobyte_cache
 
     # Note: strings are encoded as UTF-8. This is only an issue if it contains

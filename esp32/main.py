@@ -5,8 +5,8 @@ import urequests
 
 from espwconst import *
 
-pled = machine.Pin(LED_PIN)
-led = machine.PWM(pled, freq=50, duty=0)
+pled = machine.Pin(LED_PIN, machine.Pin.OUT, value=1)
+# led = machine.PWM(pled, freq=50, duty=0)
 
 def main():
     if FAKE_SLEEP:
@@ -25,10 +25,10 @@ def main():
             print("POST exception: %s" % str(e))
 
         print('Deepsleep for %s sec.' % str(DEEP_SLEEP/1000))
+        blink() # bells and whistles
         if FAKE_SLEEP :
-            sleeptime = float(DEEP_SLEEP/100000)
+            sleeptime = float(DEEP_SLEEP/10000)
             print("Fake sleep for %s" % sleeptime)
-            blink() # bells and whistles
             time.sleep(sleeptime)
         else:
             wdt.feed()
@@ -55,7 +55,7 @@ def measure(res = [0, 0, 0, 0, '']):
         lvlpin.atten(lvlpin.ATTN_11DB)
         res[3] = adc_read(lvlpin)
         res[4] = 'Low power.' if res[3] < LVL_LOWPWR else ''
-        i2c = machine.I2C(scl=machine.Pin(I2CSCL_PIN), sda=machine.Pin(I2CSDA_PIN), freq=I2C_FREQ)
+        i2c = machine.SoftI2C(scl=machine.Pin(I2CSCL_PIN), sda=machine.Pin(I2CSDA_PIN), freq=I2C_FREQ)
         bme = BME280.BME280(i2c=i2c)
         res = (bme.temperature, bme.humidity, bme.pressure, res[3], res[4])
     except Exception as e:
@@ -85,8 +85,15 @@ def get_hostport():
     return hostport
 
 def blink():
+    pled.value(1)
     for i in range(6):
-        led.duty(20) if led.duty() == 0 else led.duty(0)
+        pled.value(0) if pled.value() == 1 else pled.value(1)
         time.sleep(.2)
+    pled.value(1)
+#    led.duty(0) # just to be sure.
+#    for i in range(6):
+#        led.duty(70) if led.duty() == 0 else led.duty(0)
+#        time.sleep(.2)
+#    led.duty(0) # just to be sure.
 
 main()

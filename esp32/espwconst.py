@@ -12,7 +12,7 @@ CONNECT_WAIT = 10 # wait seconds to connect
 NTP_SYNC_PERIOD = 10800 # 3 hours
 LVL_PIN = 34 # 500k/500k to power middle node to check power level
 LVL_LOWPWR = 1880 # low power level ~= 3.15V
-LED_PIN = 21
+LED_PIN = 5
 DEEP_SLEEP = 900000 # 900000 == 15 min
 FAKE_SLEEP = 0 # 1 -- no really go to deep sleep (for debug only)
 I2CSCL_PIN = 22

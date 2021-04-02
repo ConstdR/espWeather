@@ -128,7 +128,7 @@ class tHandler(BaseHTTPRequestHandler):
             daterange = r.groups()
             default = False
         except Exception as e:
-            lg.info('Daterange error %s' % e)
+            lg.debug('Daterange error %s' % e)
             daterange = None
 
         if not daterange :
@@ -162,7 +162,9 @@ class tHandler(BaseHTTPRequestHandler):
             return
 
         jdata = json.loads(post_data)
-        lg.info("Post last data: %s" % jdata['measures'][-1])
+        first = jdata['measures'][0].split(',')[0]
+        last  = jdata['measures'][-1].split(',')[0]
+        lg.info("Post %s rows from: %s to %s (UTC)" % (len(jdata['measures']), first, last))
         dbh = get_dbh(parsedpath[1], True)
         c = dbh.cursor()
         for m in jdata['measures']:
@@ -228,6 +230,10 @@ def loggerConfig(level=0, log_file=None):
     lg.addHandler(ch)
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('Interrupted')
+        sys.exit(0)
 
 # vim: ai ts=4 sts=4 et sw=4 ft=python

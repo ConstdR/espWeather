@@ -1,4 +1,4 @@
-from machine import I2C
+from machine import SoftI2C
 import time
 
 # BME280 default address.
