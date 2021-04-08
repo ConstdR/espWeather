@@ -47,7 +47,7 @@ def start_httpd():
             html = web_page()
         else:
             html = web_page(res['essid'], res['pswd'], res['srv'],
-                            res['port'],res['message'])
+                            res['port'], res['tz'], res['message'])
         response = HTTP_RESPONSE % (len(html), html)
         conn.send(response)
         conn.close()
@@ -95,6 +95,7 @@ def process_request(request):
                 fh.write(resdict['essid'] + '\n')
                 fh.write(resdict['pswd'] + '\n')
                 fh.write(resdict['srv'] + ':' + resdict['port'] + '\n')
+                fh.write(resdict['tz'] + '\n') 
                 fh.close()
                 resdict['message'] += ' Settings stored. Please restart.'
             except Exception as e:
@@ -105,7 +106,8 @@ def process_request(request):
     print("Res dict: %s" % resdict)
     return resdict
 
-def find_servers(ip, port):
+def find_servers(ip, port): 
+    # TODO
     try:
         m = re.match("(.*\.)\d*$", ip).group(1)
         print("Network: %s" % m)
@@ -115,18 +117,19 @@ def find_servers(ip, port):
     except Exception as e:
         print("Find server error: %s" % str(e))
 
-def web_page(essid='essid', pswd='password', server='192.168.1.5', port='8088', message=''):
+def web_page(essid='essid', pswd='password', server='192.168.1.5', port='8088', tz='2', message=''):
   html = """<html><body><h1>ESP: %s </h1>""" % ap.config('essid')
   html += """<form action="/" method="get">
 <p>ESSID:<input name="essid" type=text value="%s"></p>
 <p>Password:<input name="pswd" type=text value="%s"></p>
 <p>Server IP:<input name="srv" type=text value="%s"></p>
 <p>Server Port:<input name="port" type=text value="%s"></p>
+<p>Time: UTC + <input name="tz" type=text value="%s"></p>
 <p><input type="submit" value="Submit"></p>
 </form>
 <hr>
 %s
-""" % (essid, pswd, server, port, message)
+""" % (essid, pswd, server, port, tz, message)
   html += """</body></html>""" 
   return html
 

@@ -4,8 +4,11 @@ esp.osdebug(None)
 
 import os, time
 import machine
+import _thread
 
 from espwconst import *
+
+pled = machine.Pin(LED_PIN, machine.Pin.OUT, value=1)
 
 def do_connect():
     (essid, pswd) = get_credentials()
@@ -91,5 +94,16 @@ def run():
             sync_time()
     else:
         print("Low power, no connection")
+
+def blink():
+    # pled.value(1)
+    print("Blinking")
+    while True:
+    # for i in range(6):
+        pled.value(0) if pled.value() == 1 else pled.value(1)
+        time.sleep(.2)
+    # pled.value(1)
+
+_thread.start_new_thread(blink, ()) # bells and whistles
 
 run()

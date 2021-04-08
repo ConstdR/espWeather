@@ -5,8 +5,8 @@ import urequests
 
 from espwconst import *
 
-pled = machine.Pin(LED_PIN, machine.Pin.OUT, value=1)
-# led = machine.PWM(pled, freq=50, duty=0)
+az_pin = machine.Pin(AZ_PIN, machine.Pin.OUT)
+paz =  machine.PWM(az_pin, freq=50)
 
 def main():
     if FAKE_SLEEP:
@@ -14,6 +14,7 @@ def main():
     else:
         wdt = machine.WDT(timeout=int(DEEP_SLEEP+DEEP_SLEEP/2))
     while True:
+        azimuth()
         (t, h, p, v, msg) = measure()
         message = 'WakeReason:%s' % machine.wake_reason() + ( ' ' + msg if msg else '' )
         dat = update_data([t, h, p, v, message])
@@ -24,15 +25,30 @@ def main():
         except Exception as e:
             print("POST exception: %s" % str(e))
 
-        print('Deepsleep for %s sec.' % str(DEEP_SLEEP/1000))
-        blink() # bells and whistles
         if FAKE_SLEEP :
             sleeptime = float(DEEP_SLEEP/10000)
-            print("Fake sleep for %s" % sleeptime)
+            print("Fake sleep for %s sec" % sleeptime)
             time.sleep(sleeptime)
         else:
+            print('Deepsleep for %s sec.' % str(DEEP_SLEEP/1000))
             wdt.feed()
             machine.deepsleep(DEEP_SLEEP)
+
+def azimuth():
+    print("Azimuth ", end='')
+    t = time.localtime()
+    hours = t[3] + t[4] * (1/60)
+    duty = round( ( 18 - hours + TZ) * DUTYPERHOUR )
+    print("duty: ", end="")
+    if duty >= PWMMIN and duty <= PWMMAX:
+        print(duty)
+        paz.init()
+        paz.duty(duty)
+        time.sleep(1) # TODO: calculate sleep time by duty difference
+    else:
+        # TODO: maybe rotate to start position at sunset
+        print("ignoring")
+    paz.deinit()
 
 def update_data(d):
     open(DATA_FILE, 'a').close()
@@ -83,17 +99,5 @@ def get_hostport():
     except Exception as e:
         print("Error getting hostport: %s" % e)
     return hostport
-
-def blink():
-    pled.value(1)
-    for i in range(6):
-        pled.value(0) if pled.value() == 1 else pled.value(1)
-        time.sleep(.2)
-    pled.value(1)
-#    led.duty(0) # just to be sure.
-#    for i in range(6):
-#        led.duty(70) if led.duty() == 0 else led.duty(0)
-#        time.sleep(.2)
-#    led.duty(0) # just to be sure.
 
 main()
