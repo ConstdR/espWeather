@@ -4,6 +4,8 @@ import machine
 import time
 import socket
 import re
+import main
+from espwconst import *
 
 CONNECT_WAIT = 10
 CFG_NAME = '_config'
@@ -14,7 +16,6 @@ Content-Length: %d
 %s
 """
 
-pin21 = machine.Pin(21, machine.Pin.OUT)
 ap = None
 _hextobyte_cache = None
 
@@ -27,9 +28,7 @@ def start_ap():
     ap.active(True)
     while ap.active() == False:
         time.sleep(1)
-        pin21.value( not pin21.value())
     print("AP active: %s %s" % (ap.config('essid'), ap.ifconfig()))
-    pin21.on()
 
 def start_httpd():
     """
@@ -44,17 +43,65 @@ def start_httpd():
         request = conn.recv(1024)
         res = process_request(request)
         if not res:
-            html = web_page()
+            cfg = get_config()
+            if cfg is not None:
+                html = web_page(*cfg)
+            else:
+                html = web_page()
         else:
             html = web_page(res['essid'], res['pswd'], res['srv'],
-                            res['port'], res['tz'], res['message'])
+                            res['port'], res['tz'], res['latitude'], res['action'], res['message'])
         response = HTTP_RESPONSE % (len(html), html)
         conn.send(response)
         conn.close()
 
+def az(duty):
+    main.paz.deinit()
+    main.paz.init(duty=duty)
+
+def az_min():
+    az(AZ_MIN)
+    print ("AZ_MIN")
+def az_mid():
+    az(round((AZ_MAX+AZ_MIN)/2))
+    print ("AZ_MID")
+def az_max():
+    az(AZ_MAX)
+    print ("AZ_MAX")
+
+def alt(duty):
+    main.palt.deinit()
+    main.palt.init(duty=duty)
+
+def alt_min():
+    alt(ALT_MIN)
+    print ("ALT_MIN")
+def alt_mid():
+    alt(round((ALT_MAX+ALT_MIN)/2))
+    print ("ALT_MID")
+def alt_max():
+    alt(ALT_MAX)
+    print ("ALT_MAX")
+
+def action(act):
+    switch = {
+        'az_min': az_min,
+        'az_mid': az_mid,
+        'az_max': az_max,
+        'alt_min': alt_min,
+        'alt_mid': alt_mid,
+        'alt_max': alt_max
+    }
+    func = switch.get(act)
+    try:
+        return func()
+    except Exception as e:
+        print(e)
+
 def process_request(request):
+    print("Req decode: %s" % request.decode().split('\n')[0].strip().split(' '))
     req = request.decode().split('\n')[0].strip().split(' ')
-    fields = ('essid', 'pswd', 'srv', 'port')
+    fields = ('essid', 'pswd', 'srv', 'port', 'tz', 'latitude', 'action')
     get = '' if len(req) < 3 else req[1]
     lst = get.split('?')
     get = '' if len(lst) < 2 else lst[1]
@@ -67,6 +114,7 @@ def process_request(request):
             resdict[pair[0]]=unquote(pair[1]).decode()
         except:
             pass
+    print("Res dict: %s" % resdict)
     count = 0
     for k in fields:
         if k in resdict.keys():
@@ -74,6 +122,10 @@ def process_request(request):
     if count != len(fields):
         resdict = None
     else:
+        if resdict['action']:
+            print("Action: %s" % resdict['action'])
+            action(resdict['action'])
+
         # check wifi connection
         wlan = network.WLAN(network.STA_IF)
         wlan.active(True)
@@ -89,13 +141,14 @@ def process_request(request):
         else:
             resdict['message'] = "%s connected." % resdict['essid']
             # store credentials
-            find_servers(resdict['srv'], resdict['port'])
+            # find_servers(resdict['srv'], resdict['port'])  # maybe later
             try:
                 fh = open(CFG_NAME, 'w')
                 fh.write(resdict['essid'] + '\n')
                 fh.write(resdict['pswd'] + '\n')
                 fh.write(resdict['srv'] + ':' + resdict['port'] + '\n')
-                fh.write(resdict['tz'] + '\n') 
+                fh.write(resdict['tz'] + '\n')
+                fh.write(resdict['latitude'] + '\n')
                 fh.close()
                 resdict['message'] += ' Settings stored. Please restart.'
             except Exception as e:
@@ -103,7 +156,6 @@ def process_request(request):
                 print(e)
         wlan.active(False)
 
-    print("Res dict: %s" % resdict)
     return resdict
 
 def find_servers(ip, port): 
@@ -117,19 +169,30 @@ def find_servers(ip, port):
     except Exception as e:
         print("Find server error: %s" % str(e))
 
-def web_page(essid='essid', pswd='password', server='192.168.1.5', port='8088', tz='2', message=''):
-  html = """<html><body><h1>ESP: %s </h1>""" % ap.config('essid')
+def web_page(essid='essid', pswd='password', server='192.168.1.5', port='8088', tz='1', latitude='50', action="", message=''):
+  html = """<html><body><h1>%s</h1>""" % ap.config('essid')
   html += """<form action="/" method="get">
 <p>ESSID:<input name="essid" type=text value="%s"></p>
 <p>Password:<input name="pswd" type=text value="%s"></p>
 <p>Server IP:<input name="srv" type=text value="%s"></p>
 <p>Server Port:<input name="port" type=text value="%s"></p>
 <p>Time: UTC + <input name="tz" type=text value="%s"></p>
+<p>Latitude: <input name="latitude" type=text value="%s"></p>
+<p>Action: %s
+<br>
+Azimuth:<input name="action" type="radio" value="az_min">min
+<input name="action" type="radio" value="az_mid" checked>middle
+<input name="action" type="radio" value="az_max">max
+<br>
+Altitude:<input name="action" type="radio" value="alt_min">min
+<input name="action" type="radio" value="alt_mid">middle
+<input name="action" type="radio" value="alt_max">max
+</p>
 <p><input type="submit" value="Submit"></p>
 </form>
 <hr>
 %s
-""" % (essid, pswd, server, port, tz, message)
+""" % (essid, pswd, server, port, tz, latitude, action, message)
   html += """</body></html>""" 
   return html
 
@@ -171,6 +234,21 @@ def unquote(string):
             append(item)
 
     return b''.join(res)
+
+def get_config():
+    try:
+        fh = open(CFG_NAME, 'r')
+        essid = fh.readline() # skip essid
+        pswd = fh.readline() # skip pswd
+        (host, port) = fh.readline().strip().split(':')
+        tz = float(fh.readline().strip())
+        longitude = float(fh.readline().strip())
+        if tz == '': tz=TZ
+        if longitude == '' : longitude=ALT_LONGITUDE
+        fh.close()
+        return (essid, pswd, host, port, tz, longitude, '', 'Existing Config.')
+    except Exception as e:
+        print("Error getting config: %s" % e)
 
 def run():
     print("Run AP.")

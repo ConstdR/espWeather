@@ -13,10 +13,12 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import os, sqlite3, re
 import json
+import glob
+from pprint import pp
 
 lg = logging.getLogger(__file__)
 args = None
-VMAS = 580
+VMAS = 558
 DEF_RANGE = 7 # in days!!!
 
 def main():
@@ -58,7 +60,10 @@ class tHandler(BaseHTTPRequestHandler):
             params = parse_qs(parsedurl.query)
             if parsedurl.query:
                 lg.debug("Params: %s" % ("%s" % parsedurl.query))
-            if data[0] in ('dygraph.js', 'jquery.min.js', 'moment.min.js', 'daterangepicker.min.js',
+            if len(data) == 0 or data[0] == '':
+                lg.debug("List")
+                txt = get_sensorlist()
+            elif data[0] in ('dygraph.js', 'jquery.min.js', 'moment.min.js', 'daterangepicker.min.js',
                            'dygraph.css', 'daterangepicker.css'):
                 age = 43200
                 txt = open('%s/templates/%s' % (args.datadir, data[0]), 'r').read()
@@ -80,7 +85,9 @@ class tHandler(BaseHTTPRequestHandler):
                                       order by timedate""", (startdate, enddate))
                     rows = res.fetchall()
                     for row in rows:
-                        txt = txt + "%(tztime)s,%(temperature)s,%(humidity)s,%(pressure)s,%(voltage)s\n" % row
+                        if 'voltagesun' not in row:
+                            row['voltagesun'] = row['voltage']
+                        txt = txt + "%(tztime)s,%(temperature)s,%(humidity)s,%(pressure)s,%(voltage)s,%(voltagesun)s\n" % row
                     dbh.close()
                 else:
                     dbh = get_dbh(data[0])
@@ -171,7 +178,16 @@ class tHandler(BaseHTTPRequestHandler):
             vals = m.split(',')
             vals.insert(1, self.client_address[0])
             vals[5] = float(vals[5]) / VMAS
-            c.execute('insert or replace into data values(?,?,?,?,?,?,?)', vals)
+            if ( parsedpath[1] in [ 'ac67b2385f88', 'ac67b2386628' ] ) :
+                vals[6] = float(vals[6]) * (4/3) / VMAS
+            else:
+                vals[6] = float(vals[6]) / VMAS
+            try:
+                c.execute('insert or replace into data values(?,?,?,?,?,?,?,?)', vals)
+            except Exception as e:
+                lg.error('Insert error: %s' % e)
+                lg.error('Data row: %s' % m)
+
         dbh.commit()
         dbh.close()
         self.do_HEAD()
@@ -198,16 +214,41 @@ class tHandler(BaseHTTPRequestHandler):
         self.wfile.flush()
         self.connection.close()
 
-def get_dbh(name, create=False):
-    fname = '%s/%s.sqlite3' % (args.datadir, name)
-    if os.path.isfile(fname) :
-        dbh = sqlite3.connect(fname)
+
+def get_sensorlist():
+    lst = glob.glob("%s/*sqlite3" % args.datadir)
+    lg.debug(lst)
+    data= []
+    for f in lst:
+        lg.debug("file: " + f)
+        try:
+            dbh = get_dbh(create=False, fullname=f)
+            res = dbh.execute("""select '%s', case when params.value is NULL then '__new__' else params.value end as name,
+                                                data.*, datetime(data.timedate, 'localtime') as tztime
+                                         from data
+                                         left join params on params.name='name'
+                                         order by timedate desc limit 1""" % f)
+            row = res.fetchone()
+            lg.debug(row['name'])
+            dbh.close()
+            data.append(row)
+        except:
+            pass
+    lg.debug(pp(data))
+    return ( "Sensor list ")
+
+def get_dbh(name='', create=False, fullname=None):
+    if fullname is None:
+        fullname = '%s%s.sqlite3' % (args.datadir, name)
+    lg.debug("DB file name: %s" % fullname )
+    if os.path.isfile(fullname) :
+        dbh = sqlite3.connect(fullname)
     elif create:
-        dbh = sqlite3.connect(fname)
+        dbh = sqlite3.connect(fullname)
         c = dbh.cursor()
         c.execute("""CREATE TABLE data ( timedate text primary key, ip text,
                                         temperature real, humidity real,
-                                        pressure real, voltage real,
+                                        pressure real, voltage real, voltagesun real,
                                         message text)""")
         c.execute("CREATE TABLE params (name text primary key, value text)")
         dbh.commit()

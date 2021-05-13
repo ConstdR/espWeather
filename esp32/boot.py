@@ -5,6 +5,7 @@ esp.osdebug(None)
 import os, time
 import machine
 import _thread
+import random
 
 from espwconst import *
 
@@ -101,7 +102,7 @@ def blink():
     while True:
     # for i in range(6):
         pled.value(0) if pled.value() == 1 else pled.value(1)
-        time.sleep(.2)
+        time.sleep(random.random())
     # pled.value(1)
 
 _thread.start_new_thread(blink, ()) # bells and whistles

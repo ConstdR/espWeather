@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>Weather %(name)s / %(id)s</title>
+    <title>%(name)s weather / %(id)s</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta http-equiv="refresh" content="%(refreshtime)s; url=%(url)s?%(daterange)s" />
     <script src="dygraph.js"></script>
@@ -39,7 +39,7 @@
 <div class="divSquare hum">%(humidity).2f %%</div>
 <div style='clear:both'></div>
 <div class="divSquare pres">%(pressure).2f hPa</div>
-<div class="divSquare volt">%(voltage).2f V</div>
+<div class="divSquare volt">%(voltage).2f / %(voltagesun).2f V/V<sub>sun</sub></div>
 <div style='clear:both'></div>
 </div>
 <div>
@@ -85,6 +85,8 @@ setInterval(function() {
 <div style="clear:both"></div>
 <div class="leftname">V</div><div id="battery"  class="graph"></div>
 <div style="clear:both"></div>
+<div class="leftname">V<sub>sun</sub></div><div id="solar"  class="graph"></div>
+<div style="clear:both"></div>
 </div>
 <script type="text/javascript">
   function startRename() {
@@ -98,35 +100,44 @@ setInterval(function() {
   req.open("GET", "%(id)s/t.csv?daterange=%(startdate)s+-+%(enddate)s", false);
   req.onreadystatechange = function() { csv = req.responseText; }
   req.send();
-  labels = ['Time', 'Temperature', 'Humidity', 'Pressure', 'Battery'];
+  labels = ['Time', 'Temperature', 'Humidity', 'Pressure', 'Battery', 'Solar'];
   gt = new Dygraph( document.getElementById("temperature"), csv,
     { labels: labels,
-    visibility: [true, false, false, false],
+    visibility: [true, false, false, false, false],
     rollPeriod: 5,
     showRoller: true,
     color: "#25259a"
     });
   g1 = new Dygraph( document.getElementById("humidity"), csv,
     { labels: labels,
-    visibility: [false, true, false, false],
+    visibility: [false, true, false, false, false],
     rollPeriod: 5,
     showRoller: true,
     color: "#3d9e3d"
     });
   g2 = new Dygraph( document.getElementById("pressure"), csv,
     { labels: labels,
-    visibility: [false, false, true, false],
+    visibility: [false, false, true, false, false],
     rollPeriod: 5,
     showRoller: true,
     color: "#800080"
     });
   g3 = new Dygraph( document.getElementById("battery"), csv,
     { labels: labels,
-    visibility: [false, false, false, true],
+    visibility: [false, false, false, true, false],
     rollPeriod: 5,
     showRoller: true,
-    color:"#008080"
+    color: "#008080"
     });
+  g4 = new Dygraph( document.getElementById("solar"), csv,
+    { labels: labels,
+    visibility: [false, false, false, false, true],
+    rollPeriod: 5,
+    showRoller: true,
+    color: "#8080f0"
+    });
+
+
 </script>
 <hr/>
 <h2><i>IP: %(ip)s</i><h2>
