@@ -143,8 +143,8 @@ def measure(res = [0, 0, 0, 0, 0, '']):
         lvlpin.atten(lvlpin.ATTN_11DB)
         res[3] = adc_read(lvlpin)
         lvlspin = machine.ADC(machine.Pin(LVL_SUNPIN))
-        lvlspin.width(lvlpin.WIDTH_12BIT)
-        lvlspin.atten(lvlpin.ATTN_11DB)
+        lvlspin.width(lvlspin.WIDTH_12BIT)
+        lvlspin.atten(lvlspin.ATTN_11DB)
         res[4] = adc_read(lvlspin)
         res[5] = 'Low power.' if res[3] < LVL_LOWPWR else ''
         i2c = machine.SoftI2C(scl=machine.Pin(I2CSCL_PIN), sda=machine.Pin(I2CSDA_PIN), freq=I2C_FREQ)
