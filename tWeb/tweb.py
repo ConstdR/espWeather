@@ -19,6 +19,7 @@ from pprint import pp
 lg = logging.getLogger(__file__)
 args = None
 VMAS = 558
+VMASUN = 367
 DEF_RANGE = 7 # in days!!!
 
 def main():
@@ -79,10 +80,13 @@ class tHandler(BaseHTTPRequestHandler):
                 if len(data) > 1 and data[1].endswith('.csv'):
                     dbh = get_dbh(data[0])
                     content_type = 'text/csv'
-                    res = dbh.execute("""select *, datetime(timedate, 'localtime') as tztime from data
+                    res = dbh.execute("""select temperature, humidity, pressure,
+                                         voltage/? as voltage, 
+                                         voltagesun/? as voltagesun,
+                                         datetime(timedate, 'localtime') as tztime from data
                                          where timedate >= datetime(?, 'localtime') and
                                                timedate <= datetime(datetime(?, 'localtime'), '1 day')
-                                      order by timedate""", (startdate, enddate))
+                                      order by timedate""", (VMAS, VMASUN, startdate, enddate))
                     rows = res.fetchall()
                     for row in rows:
                         if 'voltagesun' not in row:
@@ -99,10 +103,13 @@ class tHandler(BaseHTTPRequestHandler):
                         refreshtime=0
                         lg.info("Rename to '%s'" % newname)
                     res = dbh.execute("""select case when params.value is NULL then '__new__' else params.value end as name,
-                                                data.*, datetime(data.timedate, 'localtime') as tztime
+                                                data.temperature, data.humidity, data.pressure, data.ip, data.message,
+                                                data.voltage/? as voltage,
+                                                data.voltagesun/? as voltagesun,
+                                                datetime(data.timedate, 'localtime') as tztime
                                          from data
                                          left join params on params.name='name'
-                                         order by timedate desc limit 1""")
+                                         order by timedate desc limit 1""", (VMAS, VMASUN))
                     row = res.fetchone()
                     row['id'] = data[0]
                     row['refreshtime'] = refreshtime
@@ -177,11 +184,6 @@ class tHandler(BaseHTTPRequestHandler):
         for m in jdata['measures']:
             vals = m.split(',')
             vals.insert(1, self.client_address[0])
-            vals[5] = float(vals[5]) / VMAS
-            if ( parsedpath[1] in [ 'ac67b2385f88', 'ac67b2386628' ] ) :
-                vals[6] = float(vals[6]) * (4/3) / VMAS
-            else:
-                vals[6] = float(vals[6]) / VMAS
             try:
                 c.execute('insert or replace into data values(?,?,?,?,?,?,?,?)', vals)
             except Exception as e:
