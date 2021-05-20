@@ -83,6 +83,9 @@ def alt_max():
     alt(ALT_MAX)
     print ("ALT_MAX")
 
+def reset():
+    machine.reset()
+
 def action(act):
     switch = {
         'az_min': az_min,
@@ -90,7 +93,8 @@ def action(act):
         'az_max': az_max,
         'alt_min': alt_min,
         'alt_mid': alt_mid,
-        'alt_max': alt_max
+        'alt_max': alt_max,
+        'reset': reset
     }
     func = switch.get(act)
     try:
@@ -187,6 +191,8 @@ Azimuth:<input name="action" type="radio" value="az_min">min
 Altitude:<input name="action" type="radio" value="alt_min">min
 <input name="action" type="radio" value="alt_mid">middle
 <input name="action" type="radio" value="alt_max">max
+<br>
+Reset:<input name="action" type="radio" value="reset">
 </p>
 <p><input type="submit" value="Submit"></p>
 </form>
