@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>%(name)s weather / %(id)s</title>
+    <title>{{name}} weather / {{id}}</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <meta http-equiv="refresh" content="%(refreshtime)s; url=%(url)s?%(daterange)s" />
-    <script src="dygraph.js"></script>
-    <link rel="stylesheet" href="dygraph.css" />
+    <meta http-equiv="refresh" content="{{refreshtime}};" />
+    <script src="/static/dygraph.js"></script>
+    <link rel="stylesheet" href="/static/dygraph.css" />
     <style>
         .namedate {width:30em; height:1em; margin:4px; float: left; font-size:30px;font-style:bold; text-align: center}
         .divSquare {width:10em; height:1em; margin:4px; border:1px solid black; float: left;
@@ -19,67 +19,39 @@
         .message { font-size:15px;font-style:italic;font-family:arial}
         input[type=text], input[type=submit] { font-size:20px;font-style:bold; }
     </style>
-    <script src="jquery.min.js"></script>
-    <script src="moment.min.js"></script>
-    <script src="daterangepicker.min.js"></script>
-    <link rel="stylesheet" href="daterangepicker.css" />
+    <script src="/static/jquery.min.js"></script>
+    <script src="/static/moment.min.js"></script>
+    <script src="/static/daterangepicker.min.js"></script>
+    <link rel="stylesheet" href="/static/daterangepicker.css" />
 </head>
 <body>
 <div>
 <form method="GET">
-<div class="namedate"><i><span id="espwname" onClick="startRename()">%(name)s</span>
+<div class="namedate"><i><span id="espwname" onClick="startRename()">{{name}}</span>
 <span id="espwrename" style="display:none;">
-<input type=text name="rename" value="%(name)s"/>
-<input type=hidden name="daterange" value="%(daterange)s">
+<input type=text name="rename" value="{{name}}"/>
 <input type="submit" value="ok"/>
 </span>
 </form>
-/ %(tztime)s</i></div><div style="clear:both"></div>
-<div class="divSquare temp">%(temperature).2f °C</div>
-<div class="divSquare hum">%(humidity).2f %%</div>
+/ {{tztime}}</i></div><div style="clear:both"></div>
+<div class="divSquare temp">{{temperature}} °C</div>
+<div class="divSquare hum">{{humidity}} %</div>
 <div style='clear:both'></div>
-<div class="divSquare pres">%(pressure).2f hPa</div>
-<div class="divSquare volt">%(voltage).2f / %(voltagesun).2f V/V<sub>sun</sub></div>
+<div class="divSquare pres">{{pressure}} hPa</div>
+<div class="divSquare volt">{{v}} / {{vs}} V/V<sub>sun</sub></div>
 <div style='clear:both'></div>
 </div>
 <div>
 <div style="text-align:center;width:1000px">
-<div id="countdown" style="float:left">%(refreshtime)s</div>
+<div id="countdown" style="float:left">{{refreshtime}}</div>
 <form id="rangeform" method="GET">
-<input type="text" id="dates" name="daterange" value="%(startdate)s - %(enddate)s" />
+<input type="text" id="dates" name="daterange" value="{{startdate}} - {{enddate}}" />
 </form>
-<script>
-$(function() {
-  $('#dates').daterangepicker({
-    autoApply: true,
-    opens:'center',
-    locale: { format: 'YYYY-MM-DD' },
-    startDate: '%(startdate)s',
-    endDate: '%(enddate)s',
-    ranges: {
-           'Today': [moment(), moment()],
-           'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
-           'Last 7 Days': [moment().subtract(6, 'days'), moment()],
-           'Last 30 Days': [moment().subtract(29, 'days'), moment()],
-           'This Month': [moment().startOf('month'), moment().endOf('month')],
-           'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
-    }
-  });
-  $('input[name="daterange"]').on('apply.daterangepicker', function(ev, picker) {
-    $('#rangeform').submit()
-  });
-});
-setInterval(function() {
-   s = $("#countdown").text()
-   --s
-   $("#countdown").text(s)
-}, 1000);
-
-</script>
 </div>
+<div>
 <div class="leftname">°C</div><div id="temperature" class="graph"></div>
 <div style="clear:both"></div>
-<div class="leftname">%%</div><div id="humidity" class="graph"></div>
+<div class="leftname">%</div><div id="humidity" class="graph"></div>
 <div style="clear:both"></div>
 <div class="leftname">hPa</div><div id="pressure" class="graph"></div>
 <div style="clear:both"></div>
@@ -89,15 +61,29 @@ setInterval(function() {
 <div style="clear:both"></div>
 </div>
 <script type="text/javascript">
-  function startRename() {
-    var espwn = document.getElementById("espwname");
-    var espwrn= document.getElementById("espwrename");
-    espwn.style.display="none"
-    espwrn.style.display="inline"
-  }
+  $(function() {
+   $('#dates').daterangepicker({
+     autoApply: true,
+     opens:'center',
+     locale: { format: 'YYYY-MM-DD' },
+     startDate: '{{startdate}}',
+     endDate: '{{enddate}}',
+     ranges: {
+            'Today': [moment(), moment()],
+            'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+            'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+            'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+            'This Month': [moment().startOf('month'), moment().endOf('month')],
+            'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+     }
+   });
+   $('input[name="daterange"]').on('apply.daterangepicker', function(ev, picker) {
+     $('#rangeform').submit()
+   });
+  });
   var csv = '';
   var req = new XMLHttpRequest();
-  req.open("GET", "%(id)s/t.csv?daterange=%(startdate)s+-+%(enddate)s", false);
+  req.open("GET", "/csv/{{id}}?daterange={{startdate}} - {{enddate}}", false);
   req.onreadystatechange = function() { csv = req.responseText; }
   req.send();
   labels = ['Time', 'Temperature', 'Humidity', 'Pressure', 'Battery', 'Solar'];
@@ -136,11 +122,20 @@ setInterval(function() {
     showRoller: true,
     color: "#8080f0"
     });
-
-
+  function startRename() {
+    var espwn = document.getElementById("espwname");
+    var espwrn= document.getElementById("espwrename");
+    espwn.style.display="none"
+    espwrn.style.display="inline"
+  };
+  setInterval(function() {
+   s = $("#countdown").text()
+   --s
+   $("#countdown").text(s)
+  }, 1000);
 </script>
 <hr/>
-<h2><i>IP: %(ip)s</i><h2>
-<span class=message>Message: %(message)s</span>
+<h2><i>IP: {{ip}}</i><h2>
+<span class=message>Message: {{message}}</span>
 </body>
 </html>
