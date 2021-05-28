@@ -2,6 +2,8 @@
 <html>
 <head>
 <title>Sensors</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="refresh" content="{{refreshtime}};" />
 <style>
     .temp { color:#25259a}
     .hum  { color:#3d9e3d}
@@ -14,10 +16,10 @@
 {% for id in sensors.keys() %}
 <tr>
 <td><a href="graph/{{ id }}">{{ sensors[id]['name'] }}</a></td>
-<td class="temp">{{ sensors[id]['temperature'] }}°C</td>
-<td class="hum">{{ sensors[id]['humidity'] }}%</td>
-<td class="pres">{{ sensors[id]['pressure'] }}hPa</td>
-<td class="volt">{{ sensors[id]['v'] }}V</td>
+<td class="temp">{{ sensors[id]['temperature'] }} °C</td>
+<td class="hum">{{ sensors[id]['humidity'] }} %</td>
+<td class="pres">{{ sensors[id]['pressure'] }} hPa</td>
+<td class="volt">{{ sensors[id]['v'] }} V</td>
 <td>{{ sensors[id]['tztime'] }}</td>
 </tr>
 {% endfor %}

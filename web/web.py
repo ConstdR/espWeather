@@ -24,7 +24,8 @@ cfg = None
 def main():
     global args, cfg
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', dest='config', default='config.cfg')
+    parser.add_argument('-c', '--config', dest='config', default='config.cfg',
+                    help="Config file. Default: config.cfg")
     args = parser.parse_args()
 
     config = configparser.ConfigParser()
@@ -40,9 +41,13 @@ def main():
                     web.get(r'/csv/{id}', csv_get),
                     web.get(r'/graph/{id}', graph),
                     web.post(r'/id/{id}', store),
+                    web.get('/favicon.ico', favicon),
                     web.static('/static', 'static'),
                    ])
     web.run_app(app, host=cfg['host'], port=cfg['port'])
+
+async def favicon(request):
+    raise web.HTTPFound(location='/static/favicon.ico')
 
 async def store(request):
     sensor_id = request.match_info['id']
@@ -78,6 +83,7 @@ async def store(request):
 @aiohttp_jinja2.template('graph.html')
 async def graph(request):
     sensor_id = request.match_info['id']
+    lg.debug("Graph for %s" % sensor_id)
     dbname = cfg['dbdir']+'/'+sensor_id+'.sqlite3'
     if 'rename' in request.query.keys():
         lg.debug("Rename %s to %s" % (sensor_id, request.query['rename']))
@@ -101,7 +107,7 @@ def get_range(request):
     except Exception as e:
         lg.debug('Daterange error %s' % e)
         daterange = None
-        
+
     if not daterange :
         lg.debug("Use default date range")
         now = datetime.now()
@@ -111,6 +117,7 @@ def get_range(request):
 
 @aiohttp_jinja2.template('index.html')
 async def index(request):
+    lg.debug("Get sensors list")
     sensors = {}
     for name in os.listdir(cfg['dbdir']):
         if name.endswith(".sqlite3"):
@@ -120,10 +127,11 @@ async def index(request):
                 sensors[sensor_id] = info
             except:
                 lg.error("Bad data in %s" % name)
-    return { 'sensors': sensors }
+    return { 'sensors': sensors, 'refreshtime':450 }
 
 async def csv_get(request):
     sensor_id = request.match_info['id']
+    lg.debug("Get CSV for %s" % sensor_id)
     (startdate, enddate) = get_range(request)
     dbh = sqlite3.connect(cfg['dbdir']+'/'+sensor_id+'.sqlite3')
     dbh.row_factory = dict_factory
@@ -149,7 +157,11 @@ def brief_data(fname):
     dbh = sqlite3.connect(fname)
     dbh.row_factory = dict_factory
     res = dbh.execute("""select case when params.value is NULL then '__new__' else params.value end as name,
-                                data.*, datetime(data.timedate, 'localtime') as tztime
+                                round(data.temperature,1) as temperature,
+                                cast( round(data.humidity,0) as int) as humidity,
+                                cast( round(data.pressure,0) as int) as pressure,
+                                data.voltage, data.voltagesun,
+                                datetime(data.timedate, 'localtime') as tztime
                            from data
                            left join params on params.name='name'
                           order by timedate desc limit 1""")
