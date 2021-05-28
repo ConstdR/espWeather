@@ -57,8 +57,8 @@ async def store(request):
     last  = jdata['measures'][-1].split(',')[0]
     lg.info("Post %s rows from: %s to %s (UTC)" % (len(jdata['measures']), first, last))
     dbname = cfg['dbdir']+'/'+sensor_id+'.sqlite3'
-    dbh = sqlite3.connect(dbname)
     if not os.path.isfile(dbname):
+        dbh = sqlite3.connect(dbname)
         c = dbh.cursor()
         c.execute("""CREATE TABLE data ( timedate text primary key, ip text,
                                         temperature real, humidity real,
@@ -66,6 +66,8 @@ async def store(request):
                                         message text)""")
         c.execute("CREATE TABLE params (name text primary key, value text)")
         dbh.commit()
+        dbh.close()
+    dbh = sqlite3.connect(dbname)
     c = dbh.cursor()
     for m in jdata['measures']:
         vals = m.split(',')
@@ -160,7 +162,7 @@ def brief_data(fname):
                                 round(data.temperature,1) as temperature,
                                 cast( round(data.humidity,0) as int) as humidity,
                                 cast( round(data.pressure,0) as int) as pressure,
-                                data.voltage, data.voltagesun,
+                                data.voltage, data.voltagesun, data.ip, data.message,
                                 datetime(data.timedate, 'localtime') as tztime
                            from data
                            left join params on params.name='name'
