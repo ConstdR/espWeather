@@ -10,7 +10,7 @@ Time automatically adjusted with NTP server.
 
 Pin 34 reads adc from 220kOm/220kOm devider between + Li-Ion and GND pin.
 
-tWeb.py -- simple web server to store data recieved from ESP32 modules and show current values and history graphs.
+web.py -- simple web server to store data recieved from ESP32 modules and show current values and history graphs.
 Storage format: sqlite3.
 Data stored by GET requests from ESP32 with mandatory 'id' param and optinal 't' (temperature), 'h' (humidity), 'p' (pressure),
 'v' (voltage), 'm' (message). File name determined by id field 'id'.sqlite3. 'data' table contain columns:
@@ -26,18 +26,20 @@ Measurement performs once per 900 seconds (15 min) and most of time ESP spend in
 Using Adafruit MicroPython Tool (ampy)
 
 Put files to ESP32
-
+```
 # ~/.local/bin/ampy -p /dev/ttyUSB0 put boot.py
 # ~/.local/bin/ampy -p /dev/ttyUSB0 put ap.py
 # ~/.local/bin/ampy -p /dev/ttyUSB0 put main.py
 # ~/.local/bin/ampy -p /dev/ttyUSB0 put BME280.py
 # ~/.local/bin/ampy -p /dev/ttyUSB0 put espwconst.py
-
+```
 Connect to board on USB:
 
-# screen /dev/ttyUSB0 115200
+```# screen /dev/ttyUSB0 115200```
 
 Run web to get measures (better under screen/tmux):
 
-# cd tWeb
-# ./tweb.py -vvvv
+```
+# cd web 
+# ./web.py 
+```
