@@ -8,18 +8,17 @@ AP-configuration mode starts automatically, if no config file found or by reset 
 At this mode you can connect to WiFi AP with name like ESP_XXXXX w/o password and set your local WiFi credentials and IP:PORT of the server where to send data.
 Time automatically adjusted with NTP server.
 
-Pin 34 reads adc from 220kOm/220kOm devider between + Li-Ion and GND pin.
+Pin 34 reads adc from 220kOm/220kOm devider between + Li-Ion and GND pin to monitor battery level, Pin 33 monitoring solar power level.
 
 web.py -- simple web server to store data recieved from ESP32 modules and show current values and history graphs.
 Storage format: sqlite3.
-Data stored by GET requests from ESP32 with mandatory 'id' param and optinal 't' (temperature), 'h' (humidity), 'p' (pressure),
-'v' (voltage), 'm' (message). File name determined by id field 'id'.sqlite3. 'data' table contain columns:
+Data stored by POST requests from ESP32 with CSV data for latest measures
 - timedate - UTC time
 - ip
 - temperature (t)
 - humidity (h)
 - pressure (p) in hPa
-- voltage (v) relative value, must be recalculated to real V. (2420 is near full charge, 1515 -- depleated)
+- voltage (v) relative value, must be recalculated to real V. (2420 is near full charge, 1515 -- depleated)a
 Measurement performs once per 900 seconds (15 min) and most of time ESP spend in deep-sleep mode.
 
 *Hints.*
