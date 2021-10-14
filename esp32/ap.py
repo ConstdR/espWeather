@@ -162,7 +162,7 @@ def process_request(request):
 
     return resdict
 
-def find_servers(ip, port): 
+def find_servers(ip, port):
     # TODO
     try:
         m = re.match("(.*\.)\d*$", ip).group(1)
@@ -184,13 +184,13 @@ def web_page(essid='essid', pswd='password', server='192.168.1.5', port='8088', 
 <p>Latitude: <input name="latitude" type=text value="%s"></p>
 <p>Action: %s
 <br>
-Azimuth:<input name="action" type="radio" value="az_min">min
-<input name="action" type="radio" value="az_mid" checked>middle
-<input name="action" type="radio" value="az_max">max
+Azimuth:<input name="action" type="radio" value="az_min">West
+<input name="action" type="radio" value="az_mid" checked>South
+<input name="action" type="radio" value="az_max">East
 <br>
-Altitude:<input name="action" type="radio" value="alt_min">min
+Altitude:<input name="action" type="radio" value="alt_min">Low
 <input name="action" type="radio" value="alt_mid">middle
-<input name="action" type="radio" value="alt_max">max
+<input name="action" type="radio" value="alt_max">Zenith
 <br>
 Reset:<input name="action" type="radio" value="reset">
 </p>
@@ -199,7 +199,7 @@ Reset:<input name="action" type="radio" value="reset">
 <hr>
 %s
 """ % (essid, pswd, server, port, tz, latitude, action, message)
-  html += """</body></html>""" 
+  html += """</body></html>"""
   return html
 
 def unquote(string):

@@ -47,7 +47,9 @@ def main():
     web.run_app(app, host=cfg['host'], port=cfg['port'])
 
 async def favicon(request):
-    raise web.HTTPFound(location='/static/favicon.ico')
+    res = web.FileResponse('static/favicon.ico')
+    res.headers['Cache-Control'] = 'max-age=10000'
+    return res
 
 async def store(request):
     sensor_id = request.match_info['id']
@@ -87,6 +89,8 @@ async def graph(request):
     sensor_id = request.match_info['id']
     lg.debug("Graph for %s" % sensor_id)
     dbname = cfg['dbdir']+'/'+sensor_id+'.sqlite3'
+    if not os.path.isfile(dbname):
+        raise web.HTTPNotFound(text="Not here.")
     if 'rename' in request.query.keys():
         lg.debug("Rename %s to %s" % (sensor_id, request.query['rename']))
         dbh = sqlite3.connect(dbname)
@@ -102,13 +106,14 @@ async def graph(request):
 
 def get_range(request):
     daterange = None
-    try:
-        lg.debug("Daterange: %s" % request.query['daterange'])
-        r = re.match('(\d{4}-\d\d-\d\d).-.(\d{4}-\d\d-\d\d)', request.query['daterange'])
-        daterange = r.groups()
-    except Exception as e:
-        lg.debug('Daterange error %s' % e)
-        daterange = None
+    if 'daterange' in request.query:
+        try:
+            lg.debug("Daterange: %s" % request.query['daterange'])
+            r = re.match('(\d{4}-\d\d-\d\d).-.(\d{4}-\d\d-\d\d)', request.query['daterange'])
+            daterange = r.groups()
+        except Exception as e:
+            lg.debug('Daterange error (%s) %s' % (request.query['daterange'], e))
+            daterange = None
 
     if not daterange :
         lg.debug("Use default date range")
@@ -137,10 +142,11 @@ async def csv_get(request):
     (startdate, enddate) = get_range(request)
     dbh = sqlite3.connect(cfg['dbdir']+'/'+sensor_id+'.sqlite3')
     dbh.row_factory = dict_factory
-    res = dbh.execute("select max(voltage) as mv, max(voltagesun) as mvs from data")
+    res = dbh.execute("""select max(voltage) as mv, max(voltagesun) as mvs from data
+                        where timedate > datetime(date('now'), '-60 day')""")
     maxv = res.fetchone()
-    v = 4.2/maxv['mv']
-    vs= 6/maxv['mvs']
+    v = 4.2/maxv['mv'] if  maxv['mv'] else 0
+    vs= 6/maxv['mvs'] if maxv['mvs'] else 0
     res = dbh.execute("""select temperature, humidity, pressure,
                          voltage*? as voltage,
                          voltagesun*? as voltagesun,
@@ -168,11 +174,12 @@ def brief_data(fname):
                            left join params on params.name='name'
                           order by timedate desc limit 1""")
     row = res.fetchone()
-    res = dbh.execute("select max(voltage) as mv, max(voltagesun) as mvs from data")
+    res = dbh.execute("""select max(voltage) as mv, max(voltagesun) as mvs from data
+                        where timedate > datetime(date('now'), '-90 day')""")
     maxv = res.fetchone()
     dbh.close()
-    row['v'] = round ( row['voltage'] / maxv['mv'] * 4.2, 2 )
-    row['vs']= round ( row['voltagesun'] / maxv['mvs'] * 6, 2 )
+    row['v'] = round ( row['voltage'] / maxv['mv'] * 4.2, 2 ) if maxv['mv'] else 0
+    row['vs']= round ( row['voltagesun'] / maxv['mvs'] * 6, 2 ) if maxv['mvs'] else 0
     return row
 
 def dict_factory(cursor, row):

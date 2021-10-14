@@ -6,14 +6,6 @@ from math import cos,pi
 
 from espwconst import *
 
-az_pin = machine.Pin(AZ_PIN, machine.Pin.OUT)
-paz =  machine.PWM(az_pin, freq=50)
-paz.init() #duty=round((AZ_MAX+AZ_MIN)/2))
-
-alt_pin = machine.Pin(ALT_PIN, machine.Pin.OUT)
-palt =  machine.PWM(alt_pin, freq=50)
-palt.init() #duty=round((ALT_MAX+ALT_MIN)/2))
-
 tz = TZ
 longitude = ALT_LONGITUDE
 
@@ -23,6 +15,23 @@ dom = (9, 40, 68, 99, 129, 160, 190, 221, 252, 282, 313, 343)
 
 hours = 0
 
+az_pin = machine.Pin(AZ_PIN, machine.Pin.OUT)
+paz =  machine.PWM(az_pin, freq=50)
+paz.init() #duty=round((AZ_MAX+AZ_MIN)/2))
+
+alt_pin = machine.Pin(ALT_PIN, machine.Pin.OUT)
+palt =  machine.PWM(alt_pin, freq=50)
+palt.init() #duty=round((ALT_MAX+ALT_MIN)/2))
+
+lvlpin = machine.ADC(machine.Pin(LVL_PIN))
+lvlpin.width(lvlpin.WIDTH_12BIT)
+lvlpin.atten(lvlpin.ATTN_11DB)
+
+lvlspin = machine.ADC(machine.Pin(LVL_SUNPIN))
+lvlspin.width(lvlspin.WIDTH_12BIT)
+lvlspin.atten(lvlspin.ATTN_11DB)
+
+
 def run():
     global hours
     if FAKE_SLEEP:
@@ -30,18 +39,29 @@ def run():
     else:
         wdt = machine.WDT(timeout=int(DEEP_SLEEP+DEEP_SLEEP/2))
     while True:
-        (t, h, p, v, vs, msg) = measure()
         tt = time.gmtime()
         hours = tt[3] + tt[4] * (1/60) + tz
-        az = azimuth()
-        alt = altitude()
+        if hours>4 and hours<20:
+            if POSITIONING == 'SCAN':
+                scan()
+            elif POSITIONING == 'ADOPT':
+                az = az_adopt()
+                time.sleep(1)
+                alt = altitude()
+                time.sleep(1)
+            else:
+                az = azimuth()
+                time.sleep(1)
+                alt = altitude()
+                time.sleep(1)
+        (t, h, p, v, vs, msg) = measure()
         print("HOSTPORT: %s TZ: %s LONGITUDE: %s" % (hostport, tz, longitude))
-        msg = msg + ( ' AZ:%s' % az )  + (' ALT:%s' % alt)
+        msg = msg + ( ' AZ:%s' % paz.duty() )  + (' ALT:%s' % palt.duty())
         message = 'WakeReason:%s' % machine.wake_reason() + ( msg if msg else '' )
         dat = update_data([t, h, p, v, vs, message])
         try:
             print("Post my_id: %s Length:%s" % (MY_ID, len(dat)))
-            res = urequests.post('http://%s/id/%s' % (hostport, MY_ID), 
+            res = urequests.post('http://%s/id/%s' % (hostport, MY_ID),
                                 json={'measures':dat})
         except Exception as e:
             print("POST exception: %s" % str(e))
@@ -57,14 +77,14 @@ def run():
         print()
 
 def altitude():
+    global palt
     print("Altitude: ", end="")
     # duty = round(max_alt())
     # duty = round(alt_var())
     duty = round(alt_cos())
     print(duty)
     if hours > 3 and hours < 21:
-        palt.deinit()
-        palt.init(duty=duty)
+        palt.duty(duty)
         time.sleep(1)
     else:
         print("No ALT")
@@ -101,8 +121,9 @@ def max_alt():
     if d >= 183: d = 366 - d
     a = d*23.5/183+a
     return a*x + ALT_MIN
- 
+
 def azimuth():
+    global paz
     print("Azimuth: ", end='')
     duty = round( ( 6 - (hours)) * AZ_DUTYPERHOUR ) + AZ_MAX
     if duty < PWMMIN:
@@ -115,12 +136,78 @@ def azimuth():
         duty = round((PWMMIN+PWMMAX)/2)
     print(duty)
     if hours > 3 and hours < 21:
-        paz.deinit()
-        paz.init(duty=duty)
-        time.sleep(1) # TODO: calculate sleep time by duty difference, but 1 sec seems to be fine
+        paz.duty(duty)
+        time.sleep(1)
     else:
         print("No AZ")
     return duty
+
+def az_adopt():
+    global paz
+    print("Azimuth adoptive", end='')
+    d=round((AZ_MAX+AZ_MIN)/2)
+    try:
+        d=int(open("_az", "r").read())
+        print(" read:%s"%d, end='')
+    except: print(" default", end='')
+    paz.duty(d)
+    print(" duty: %s" % d)
+    olvl=lvl=adc_read(lvlspin)
+    count=0
+    direction=1
+    while True:
+        d+=direction
+        if d>AZ_MAX: d=AZ_MAX
+        if d<AZ_MIN: d=AZ_MIN
+        paz.duty(d)
+        time.sleep(1)
+        lvl=adc_read(lvlspin)
+        if lvl<olvl:
+            direction=-direction
+        olvl=lvl
+        count+=1
+        print(" Count:%s Delta: %s"%(count, olvl-lvl))
+        if (olvl == lvl and lvl > 0 )or count > 10 : break
+    try:
+        f=open("_az",'w')
+        f.write("%s"%d)
+        f.close()
+    except Exception as e: print("Error: %s" % str(e))
+    return d
+
+def scan():
+    global paz, palt
+    paz.duty(AZ_MIN)
+    palt.duty(round((ALT_MAX+ALT_MIN)/2))
+    time.sleep(1)
+
+    r = range(AZ_MIN, AZ_MAX+1, round((AZ_MAX+AZ_MIN)/110))
+    max_lvl = 0
+    max_az = AZ_MIN
+    for a in r:
+        paz.duty(a)
+        time.sleep(.2)
+        lvl=adc_read(lvlspin)
+        if lvl > max_lvl:
+            max_lvl=lvl
+            max_az =a
+        print("%s,%s" % (a,lvl))
+    print("AZ max lvl: %s,%s" % (max_az,max_lvl))
+    paz.duty(max_az)
+
+    r = range(ALT_MIN, ALT_MAX+1, round((ALT_MAX+ALT_MIN)/50))
+    max_lvl = 0
+    max_alt = ALT_MIN
+    for a in r:
+        palt.duty(a)
+        time.sleep(.2)
+        lvl=adc_read(lvlspin)
+        if lvl > max_lvl:
+            max_lvl=lvl
+            max_alt =a
+        print("%s,%s" % (a,lvl))
+    print("ALT max lvl: %s,%s" % (max_alt,max_lvl))
+    palt.duty(max_alt)
 
 def update_data(d):
     open(DATA_FILE, 'a').close()
@@ -138,22 +225,16 @@ def update_data(d):
 
 def measure(res = [0, 0, 0, 0, 0, '']):
     try:
-        lvlpin = machine.ADC(machine.Pin(LVL_PIN))
-        lvlpin.width(lvlpin.WIDTH_12BIT)
-        lvlpin.atten(lvlpin.ATTN_11DB)
         res[3] = adc_read(lvlpin)
-        lvlspin = machine.ADC(machine.Pin(LVL_SUNPIN))
-        lvlspin.width(lvlspin.WIDTH_12BIT)
-        lvlspin.atten(lvlspin.ATTN_11DB)
         res[4] = adc_read(lvlspin)
         res[5] = 'Low power.' if res[3] < LVL_LOWPWR else ''
         i2c = machine.SoftI2C(scl=machine.Pin(I2CSCL_PIN), sda=machine.Pin(I2CSDA_PIN), freq=I2C_FREQ)
         bme = BME280.BME280(i2c=i2c)
         res = (bme.temperature, bme.humidity, bme.pressure, res[3], res[4], res[5])
+        print("Measuring: %s" % str(res))
     except Exception as e:
-        res[5]= res[5] + "Measuring Error."
+        res[5]= res[5] + " Measuring Error."
         print("Measurin Error: %s" % str(e))
-    print("Measuring: %s" % str(res))
     return res
 
 def adc_read(adc):
@@ -162,6 +243,7 @@ def adc_read(adc):
     val = 0
     for i in range(count):
         val += adc.read()
+        time.sleep(.05)
     return val/count
 
 def get_config():
