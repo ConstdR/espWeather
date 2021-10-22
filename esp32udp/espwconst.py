@@ -7,13 +7,13 @@ AP_PIN = 34 # ground this pin to activate AP mode on reset
 CFG_NAME = '_config' # store wifi ssid/pswd and tWeb ip:port
 TS_NAME = '_timestamp' # timestamp for ntp
 DATA_FILE = '_data' # measuring storage
-DATA_LENGTH = 128 # number of records to store
+DATA_LENGTH = 64 # number of records to store
 CONNECT_WAIT = 10 # wait seconds to connect
 NTP_SYNC_PERIOD = 1 # 43200 # 3 hours
 LVL_PIN = 35 # 220k/220k to power/ground and middle node to check power level
 LVL_LOWPWR = 1880 # low power level ~= 3.15V
 LVL_SUNPIN = 33 # Solar battery level pin
-LED_PIN = 5
+LED_PIN = 19
 DEEP_SLEEP = 90000 # 900000 == 15 min
 I2CSCL_PIN = 22
 I2CSDA_PIN = 21
