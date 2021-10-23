@@ -46,13 +46,31 @@ def recv_packet(pkt):
     last[pkt.topic] = pkt.value
     lg.debug( pkt.topic+"="+pkt.value+ "\t\t" + str(pkt.addr) )
 
-    r = re.match(r'weather/+(.*)', pkt.topic)
+    r = re.match(r'^weather/+([^/]*)/config$', pkt.topic)
+    if r and r.group(1):
+        try:
+            lg.info("Config from %s : %s" % (r.group(1), pkt.value))
+            store_conf(r.group(1), pkt.value)
+        except Exception as e:
+            lg.error("Config store error: %s" % e)
+
+    r = re.match(r'^weather/+([^/]*)$', pkt.topic)
     if r and r.group(1):
         lg.debug("Weather id: %s" % r.group(1))
         try:
             store(r.group(1), pkt.value, str(pkt.addr))
         except Exception as e:
             lg.error("Store error: %s" % e)
+
+def store_conf(wid, data):
+    dbname = cfg['dbdir']+'/'+wid+'.sqlite3'
+    ddata  = json.loads(data)
+    dbh = sqlite3.connect(dbname)
+    c = dbh.cursor()
+    for key, value in ddata.items():
+        c.execute("insert or replace into params (name, value) values (?,?)", (key, value))
+    dbh.commit()
+    dbh.close()
 
 def store(wid, data, ip):
     ddata  = json.loads(data)
@@ -81,7 +99,6 @@ def store(wid, data, ip):
                         :w, :m)""", ddata)
     dbh.commit()
     dbh.close()
-    return
 
 if __name__ == "__main__":
     main()
