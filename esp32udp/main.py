@@ -10,6 +10,7 @@ longitude = ALT_LONGITUDE
 dom = (9, 40, 68, 99, 129, 160, 190, 221, 252, 282, 313, 343)
 
 hours = 0
+tstump = ''
 
 az_pin = machine.Pin(AZ_PIN, machine.Pin.OUT)
 paz =  machine.PWM(az_pin, freq=50)
@@ -29,6 +30,8 @@ lvlspin.atten(lvlspin.ATTN_11DB)
 
 
 def run():
+    global tstump
+    tstump = '%s-%.2d-%.2d %.2d:%.2d:%.2d' % time.localtime()[0:6]
     if FAKE_SLEEP:
         print("No watchdog")
     else:
@@ -39,9 +42,11 @@ def run():
         print("TZ: %s LONGITUDE: %s" % (tz, longitude))
         dat = update_data([t, h, p, v, vs, paz.duty(), palt.duty(), machine.wake_reason(), msg])
         try:
-            print("Publish my_id: %s Length:%s" % (MY_ID, len(dat)))
+            print("Publish id: %s Length:%s" % (MY_ID, len(dat)))
             for line in dat:
-                me.send_publish('weather/' + MY_ID, json.dumps(to_dict(line)))
+                me.send_publish('weather/' + MY_ID, json.dumps(to_dict(line))
+            config = { "sleep": DEEP_SLEEP, "fake_sleep": FAKE_SLEEP, "ts": tstump}
+            me.send_publish('weather/%s/config' % MY_ID, json.dumps(config))
         except Exception as e:
             print("Publish exception: %s" % str(e))
 
@@ -128,7 +133,6 @@ def azimuth():
 def update_data(d):
     open(DATA_FILE, 'a').close()
     data = [line.strip() for line in open(DATA_FILE, 'r')]
-    tstump = '%s-%.2d-%.2d %.2d:%.2d:%.2d' % time.localtime()[0:6]
     print("Timestamp: %s" % tstump)
     d.insert(0, tstump)
     s = ','.join([str(e) for e in d ])
