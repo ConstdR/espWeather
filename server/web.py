@@ -101,7 +101,7 @@ async def graph(request):
     info = brief_data(dbname)
     info['id'] = sensor_id
     (info['startdate'], info['enddate']) = get_range(request)
-    info['refreshtime'] = 450
+    info['refreshtime'] = int(info['period']/2)
     return info
 
 def get_range(request):
@@ -164,22 +164,37 @@ async def csv_get(request):
 def brief_data(fname):
     dbh = sqlite3.connect(fname)
     dbh.row_factory = dict_factory
-    res = dbh.execute("""select case when params.value is NULL then '__new__' else params.value end as name,
-                                round(data.temperature,1) as temperature,
+    res = dbh.execute("""select round(data.temperature,1) as temperature,
                                 cast( round(data.humidity,0) as int) as humidity,
                                 cast( round(data.pressure,0) as int) as pressure,
                                 data.voltage, data.voltagesun, data.ip, data.message,
                                 datetime(data.timedate, 'localtime') as tztime
                            from data
-                           left join params on params.name='name'
                           order by timedate desc limit 1""")
     row = res.fetchone()
     res = dbh.execute("""select max(voltage) as mv, max(voltagesun) as mvs from data
                         where timedate > datetime(date('now'), '-90 day')""")
     maxv = res.fetchone()
-    dbh.close()
     row['v'] = round ( row['voltage'] / maxv['mv'] * 4.2, 2 ) if maxv['mv'] else 0
     row['vs']= round ( row['voltagesun'] / maxv['mvs'] * 6, 2 ) if maxv['mvs'] else 0
+
+    res = dbh.execute("""select name, value from params""")
+    rows = res.fetchall()
+    params = {}
+    for r in rows:
+        params[r['name']] = r['value']
+    row['name'] = params.get('name', '_new_')
+
+    try:
+        row['period'] = int(params.get('sleep',900000))/1000
+        if int(params.get('fake_sleep',0)):
+            row['period'] = row['period']/10
+    except Exception as e:
+        lg.error("Bad period params: %s\n%s" % (rows, e))
+        row['period'] = 450
+
+    dbh.close()
+    lg.debug("Brief data %s: %s" % (fname, row))
     return row
 
 def dict_factory(cursor, row):
