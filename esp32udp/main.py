@@ -44,8 +44,8 @@ def run():
         try:
             print("Publish id: %s Length:%s" % (MY_ID, len(dat)))
             for line in dat:
-                me.send_publish('weather/' + MY_ID, json.dumps(to_dict(line))
-            config = { "sleep": DEEP_SLEEP, "fake_sleep": FAKE_SLEEP, "ts": tstump}
+                me.send_publish('weather/' + MY_ID, json.dumps(to_dict(line)))
+            config = { "sleep": DEEP_SLEEP, "fake_sleep": FAKE_SLEEP, "ts_cfg": tstump}
             me.send_publish('weather/%s/config' % MY_ID, json.dumps(config))
         except Exception as e:
             print("Publish exception: %s" % str(e))
