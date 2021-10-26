@@ -42,11 +42,12 @@ def run():
         print("TZ: %s LONGITUDE: %s" % (tz, longitude))
         dat = update_data([t, h, p, v, vs, paz.duty(), palt.duty(), machine.wake_reason(), msg])
         try:
+            config = { "sleep": DEEP_SLEEP, "fake_sleep": FAKE_SLEEP, "ts_cfg": tstump}
+            print("Publish config: %s" % config)
+            me.send_publish('weather/%s/config' % MY_ID, json.dumps(config))
             print("Publish id: %s Length:%s" % (MY_ID, len(dat)))
             for line in dat:
                 me.send_publish('weather/' + MY_ID, json.dumps(to_dict(line)))
-            config = { "sleep": DEEP_SLEEP, "fake_sleep": FAKE_SLEEP, "ts_cfg": tstump}
-            me.send_publish('weather/%s/config' % MY_ID, json.dumps(config))
         except Exception as e:
             print("Publish exception: %s" % str(e))
 
@@ -144,7 +145,7 @@ def update_data(d):
     return data
 
 def measure():
-    res = [0]*10
+    res = [0]*6
     try:
         res[3] = adc_read(lvlpin)
         res[4] = adc_read(lvlspin)
