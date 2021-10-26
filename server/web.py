@@ -15,9 +15,12 @@ from aiohttp import web
 
 from pprint import pprint as pp
 
+from multiprocessing import Process
+import listenudp
+
 DEF_RANGE = 7 # in days!!!
 
-lg = logging.getLogger(__file__)
+lg = logging.getLogger(__name__)
 args = None
 cfg = None
 
@@ -44,6 +47,10 @@ def main():
                     web.get('/favicon.ico', favicon),
                     web.static('/static', 'static'),
                    ])
+
+    p = Process(target=listenudp.main)
+    p.start()
+
     web.run_app(app, host=cfg['host'], port=cfg['port'])
 
 async def favicon(request):
