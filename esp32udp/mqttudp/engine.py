@@ -2,12 +2,11 @@
 
 import socket
 import time
-import datetime
 import struct
-from enum import Enum
 
 import hashlib
-import hmac
+
+from espwconst import *
 
 import mqttudp.mqtt_udp_defs as defs
 #from array import array
@@ -19,13 +18,22 @@ import mqttudp.mqtt_udp_defs as defs
 #
 # ------------------------------------------------------------------------
 
-class PacketType(Enum):
-    Unknown     = 0
-    Publish     = 0x30
-    PubAck      = defs.PTYPE_PUBACK
-    Subscribe   = 0x80
-    PingReq     = 0xC0
-    PingResp    = 0xD0
+PacketType = {
+    "Unknown"     : 0,
+    "Publish"     : 0x30,
+    "PubAck"      : defs.PTYPE_PUBACK,
+    "Subscribe"   : 0x80,
+    "PingReq"     : 0xC0,
+    "PingResp"    : 0xD0
+}
+
+ErrorType = {
+    "Unexpected"  : 0,
+    "IO"          : 1,
+    "Timeout"     : 2,
+    "Protocol"    : 3,
+    "Invalid"     : 4    # Invalid parameter
+}
 
 
 class Packet(object):
@@ -82,12 +90,12 @@ class Packet(object):
 
         #print( str(packet))
 
-        if self.ptype == PacketType.Publish:
+        if self.ptype == PacketType["Publish"]:
             payloadlen = len(payload)
         else:
             payloadlen = 0
 
-        if (self.ptype == PacketType.Publish) or (self.ptype == PacketType.Subscribe):
+        if (self.ptype == PacketType["Publish"]) or (self.ptype == PacketType["Subscribe"]):
             topiclen = 2 + len(topic)
         else:
             topiclen = 0
@@ -95,10 +103,10 @@ class Packet(object):
         remaining_length = topiclen + payloadlen
         pack_remaining_length(packet, remaining_length)
 
-        if (self.ptype == PacketType.Publish) or (self.ptype == PacketType.Subscribe):
+        if (self.ptype == PacketType["Publish"]) or (self.ptype == PacketType["Subscribe"]):
             pack_str16(packet, topic)
 
-        if self.ptype == PacketType.Publish:
+        if self.ptype == PacketType["Publish"]:
             packet.extend(payload)
 
         print("send id="+str(self.pkt_id))
@@ -166,15 +174,6 @@ def set_throttle(msec: int):
     global throttle
     throttle = msec
 
-
-class ErrorType(Enum):
-    Unexpected  = 0
-    IO          = 1
-    Timeout     = 2
-    Protocol    = 3
-    Invalid     = 4    # Invalid parameter
-
-
 user_error_handler = None
 #
 # function( retcode : int, etype : ErrorType, msg : str )
@@ -183,7 +182,7 @@ def set_error_handler( error_handler ):
     global user_error_handler
     user_error_handler = error_handler
 
-def error_handler( retcode : int, etype : ErrorType, msg : str ):
+def error_handler( retcode : int, etype : int , msg : str ):
     if user_error_handler != None :
         return user_error_handler( retcode, etype, msg )
 
@@ -230,7 +229,7 @@ def set_signature( key ):
 def sign_data( msg ):
     if isinstance(msg, str):
         msg=msg.encode('utf-8')
-    out = 'FFF' # hmac.new( __signature_key, msg, digestmod=hashlib.md5 ).hexdigest()
+    out = MY_ID
     # hmac.digest(key, msg, digest)¶
     return bytearray.fromhex( out )
 
@@ -264,7 +263,7 @@ def make_recv_socket():
             udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         except udp_socket.error as err:
             #print( "No SO_REUSEPORT" )
-            error_handler( err[0], ErrorType.IO, "No SO_REUSEPORT" )
+            error_handler( err[0], ErrorType["IO"], "No SO_REUSEPORT" )
             if err[0] not in (errno.ENOPROTOOPT, errno.EINVAL):
                 raise
 
@@ -324,7 +323,7 @@ def parse_ttrs(pktrest, pobj, start_pos ):
     #print("TTR len "+str(ttr_len))
 
     if ttr_len & 0x80:
-        return error_handler( -1, ErrorType.Protocol, "TTR len > 0x7F: "+str(ttr_len) )
+        return error_handler( -1, ErrorType["Protocol"], "TTR len > 0x7F: "+str(ttr_len) )
     
     ttr = parse_ttr( ttr_tag, pktrest[2:ttr_len+2], pobj, start_pos )
 
@@ -366,7 +365,7 @@ def parse_packet(pkt):
                 out.signed = True
                 #print("Signed OK!")
             else:
-                error_handler( -1, ErrorType.Protocol, "Packet signature is wrong" )
+                error_handler( -1, ErrorType["Protocol"], "Packet signature is wrong" )
                 #print( full_pkt.hex() )
     
     if ptype == defs.PTYPE_PUBLISH:
@@ -374,7 +373,7 @@ def parse_packet(pkt):
         topic_len = (pkt[1] & 0xFF) | ((pkt[0] << 8) & 0xFF)   
         out.topic = str( pkt[2:topic_len+2], 'UTF-8' )
         out.value = str( pkt[topic_len+2:total_len], 'UTF-8' )
-        out.ptype = PacketType.Publish
+        out.ptype = PacketType["Publish"]
         return out
 
     if ptype == defs.PTYPE_SUBSCRIBE:
@@ -383,28 +382,28 @@ def parse_packet(pkt):
         out.topic = str( pkt[2:topic_len+2], 'UTF-8' )
         #TODO use total_len
     
-        out.ptype = PacketType.Subscribe
+        out.ptype = PacketType["Subscribe"]
         return out
 
     if ptype == defs.PTYPE_PUBACK:
-        out.ptype = PacketType.PubAck
+        out.ptype = PacketType["PubAck"]
         return out
 
     if ptype == defs.PTYPE_PINGREQ:
-        out.ptype = PacketType.PingReq
+        out.ptype = PacketType["PingReq"]
         return out
 
     if ptype == defs.PTYPE_PINGRESP:
-        out.ptype = PacketType.PingResp
+        out.ptype = PacketType["PingResp"]
         return out
 
     #print( "Unknown packet type" )
-    error_handler( ptype, ErrorType.Protocol, "Unknown packet type" )
+    error_handler( ptype, ErrorType["Protocol"], "Unknown packet type" )
     #print( pkt.type() )
     #for b in pkt:
     #    print( b )
     #return "?","","",0
-    out.ptype = PacketType.Unknown
+    out.ptype = PacketType["Unknown"]
     return out
 
 
@@ -419,17 +418,17 @@ def listen(callback):
         pobj = parse_packet(pkt)
         pobj.addr = addr
         if not muted:
-            if pobj.ptype == PacketType.PingReq:
+            if pobj.ptype == PacketType["PingReq"]:
 #                print( "Got ping, reply to "+addr )
                 try:
                     send_ping_responce()
                 except Exception as e:
                     #print( "Can't send ping responce"+str(e) )
-                    error_handler( -1, ErrorType.IO, "Can't send ping responce"+str(e) )
+                    error_handler( -1, ErrorType["IO"], "Can't send ping responce"+str(e) )
 
             # TODO don't reply to own packets
             # TODO packet id is not enough, need "repy to sender host id" in PubAck too
-            if (pobj.reply_to != 0) and (pobj.ptype == PacketType.Publish):
+            if (pobj.reply_to != 0) and (pobj.ptype == PacketType["Publish"]):
                 qos = pobj.get_qos()
                 if qos > max_qos:
                     qos = max_qos
@@ -473,7 +472,7 @@ def send_publish( topic, payload=b''):
 def __make_send_socket():
     udp_socket = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
     udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    # udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     return udp_socket
 
 
@@ -602,7 +601,7 @@ def send_puback(reply_to, qos):
 
 
 def time_msec():
-    return round(datetime.datetime.utcnow().timestamp() * 1000)
+    return round(time.time_ns())
 
 last_send_time = 0
 last_send_count = 0
@@ -744,3 +743,4 @@ __SEND_SOCKET = __make_send_socket()
 if __name__ == "__main__":
 	import sys
 	send_publish(sys.argv[1], sys.argv[2])
+
