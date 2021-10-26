@@ -6,8 +6,6 @@ import struct
 
 import hashlib
 
-from espwconst import *
-
 import mqttudp.mqtt_udp_defs as defs
 #from array import array
 
@@ -229,7 +227,7 @@ def set_signature( key ):
 def sign_data( msg ):
     if isinstance(msg, str):
         msg=msg.encode('utf-8')
-    out = MY_ID
+    out = 'FFF'
     # hmac.digest(key, msg, digest)¶
     return bytearray.fromhex( out )
 
