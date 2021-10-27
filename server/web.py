@@ -193,7 +193,8 @@ def brief_data(fname):
     row['name'] = params.get('name', '_new_')
 
     try:
-        row['period'] = int(params.get('sleep',900000))/1000
+        i = int(params.get('sleep',900000))
+        row['period'] = i /1000 if t > 1000 else i
         if int(params.get('fake_sleep',0)):
             row['period'] = row['period']/10
     except Exception as e:

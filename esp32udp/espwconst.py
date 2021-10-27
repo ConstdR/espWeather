@@ -13,10 +13,10 @@ NTP_SYNC_PERIOD = 1 # 43200 # 3 hours
 LVL_PIN = 35 # 220k/220k to power/ground and middle node to check power level
 LVL_LOWPWR = 1880 # low power level ~= 3.15V
 LVL_SUNPIN = 33 # Solar battery level pin
-LED_PIN = 19
-DEEP_SLEEP = 90000 # 900000 == 15 min
+LED_PIN = 21
+DEEP_SLEEP = 90 # seconds
 I2CSCL_PIN = 22
-I2CSDA_PIN = 21
+I2CSDA_PIN = 23
 I2C_FREQ = 10000
 
 FAKE_SLEEP = 0 # 1 -- no really go to deep sleep (for debug only)

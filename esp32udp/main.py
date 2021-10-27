@@ -35,7 +35,7 @@ def run():
     if FAKE_SLEEP:
         print("No watchdog")
     else:
-        wdt = machine.WDT(timeout=int(DEEP_SLEEP+DEEP_SLEEP/2))
+        wdt = machine.WDT(timeout=int(DEEP_SLEEP+DEEP_SLEEP/2)*1000)
     while True:
         position()
         (t, h, p, v, vs, msg) = measure()
@@ -51,14 +51,15 @@ def run():
         except Exception as e:
             print("Publish exception: %s" % str(e))
 
+        stime = DEEP_SLEEP - (time.time() - boot_time)
+        sleeptime = 1 if stime < 0 else stime
         if FAKE_SLEEP :
-            sleeptime = float(DEEP_SLEEP/10000)
             print("Fake sleep for %s sec" % sleeptime)
-            time.sleep(sleeptime)
+            time.sleep(sleeptime/2)
         else:
-            print('Deepsleep for %s sec.' % str(DEEP_SLEEP/1000))
+            print('Deepsleep for %s sec.' % sleeptime)
             wdt.feed()
-            machine.deepsleep(DEEP_SLEEP)
+            machine.deepsleep(sleeptime * 1000)
         print()
 
 def to_dict(line):
