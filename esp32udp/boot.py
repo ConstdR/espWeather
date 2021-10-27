@@ -1,15 +1,11 @@
 # This file is executed on every boot (including wake-boot from deepsleep)
 import esp
 esp.osdebug(None)
-
-import os, time
-import machine
-import _thread
-import random
-
+import os, time, machine, _thread, random
 from espwconst import *
 
 pled = machine.Pin(LED_PIN, machine.Pin.OUT, value=1)
+boot_time=time.time()
 
 def do_connect():
     (essid, pswd) = get_credentials()
