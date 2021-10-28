@@ -35,7 +35,7 @@ def main():
     config.read(args.config)
     cfg = config['default']
 
-    logging.basicConfig(level=cfg['debug'])
+    logging.basicConfig(level=cfg['debug'], format='%(asctime)s %(name)s.%(lineno)s %(levelname)s: %(message)s')
 
     app = web.Application()
     aiohttp_jinja2.setup(app,loader=jinja2.FileSystemLoader('templates'))
