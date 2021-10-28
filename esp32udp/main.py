@@ -45,6 +45,7 @@ def run():
             config = { "sleep": DEEP_SLEEP, "fake_sleep": FAKE_SLEEP, "ts_cfg": tstump}
             print("Publish config: %s" % config)
             me.send_publish('weather/%s/config' % MY_ID, json.dumps(config))
+            dat.reverse()
             print("Publish id: %s Length:%s" % (MY_ID, len(dat)))
             for line in dat:
                 me.send_publish('weather/' + MY_ID, json.dumps(to_dict(line)))
