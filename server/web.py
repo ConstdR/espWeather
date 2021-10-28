@@ -187,18 +187,18 @@ def brief_data(fname):
 
     res = dbh.execute("""select name, value from params""")
     rows = res.fetchall()
-    params = {}
     for r in rows:
-        params[r['name']] = r['value']
-    row['name'] = params.get('name', '_new_')
+        row[r['name']] = r['value']
+    row['name'] = row.get('name', '_new_')
+    lg.debug("Brief data: %s" % row)
 
     try:
-        i = int(params.get('sleep',900000))
-        row['period'] = i /1000 if t > 1000 else i
-        if int(params.get('fake_sleep',0)):
+        i = int(row.get('sleep',900000))
+        row['period'] = i /1000 if i > 1000 else i
+        if int(row.get('fake_sleep',0)):
             row['period'] = row['period']/10
     except Exception as e:
-        lg.error("Bad period params: %s\n%s" % (rows, e))
+        lg.error("Bad period params: %s\n%s" % (row, e))
         row['period'] = 450
 
     dbh.close()
