@@ -13,7 +13,7 @@ LVL_PIN = 35 # 220k/220k to power/ground and middle node to check power level
 LVL_LOWPWR = 1880 # low power level ~= 3.15V
 LVL_SUNPIN = 33 # Solar battery level pin
 LED_PIN = 21
-DEEP_SLEEP = 300 # seconds
+DEEP_SLEEP = 900 # seconds
 I2CSCL_PIN = 22
 I2CSDA_PIN = 23
 I2C_FREQ = 10000
@@ -22,7 +22,7 @@ NTP_SYNC_PERIOD = DEEP_SLEEP*6 # ntp sync interval
 
 FAKE_SLEEP = 0 # 1 -- no really go to deep sleep (for debug only)
 
-POSITIONING = 'NOSCAN' # SCAN -- scan around, else -- calculated position
+POSITIONING = 'NO' # NO -- no positioning
 
 # positioning with mg995 servo
 TZ = 1 # timezone difference with UTC in hours, could be float. NOT SUMMER TIME!

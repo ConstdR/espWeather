@@ -37,7 +37,8 @@ def run():
     else:
         wdt = machine.WDT(timeout=int(DEEP_SLEEP+DEEP_SLEEP/2)*1000)
     while True:
-        position()
+        if POSITIONING != 'NO':
+            position()
         (t, h, p, v, vs, msg) = measure()
         print("TZ: %s LONGITUDE: %s" % (tz, longitude))
         dat = update_data([t, h, p, v, vs, paz.duty(), palt.duty(), machine.wake_reason(), msg])
@@ -76,22 +77,16 @@ def position():
     global hours
     tt = time.gmtime()
     hours = tt[3] + tt[4] * (1/60) + tz
-    if hours>4 and hours<20:
-        az = azimuth()
-        time.sleep(1)
-        alt = altitude()
-        time.sleep(1)
+    az = azimuth()
+    alt = altitude()
 
 def altitude():
     global palt
     print("Altitude: ", end="")
     duty = round(alt_cos())
     print(duty)
-    if hours > 3 and hours < 21:
-        palt.duty(duty)
-        time.sleep(1)
-    else:
-        print("No ALT")
+    palt.duty(duty)
+    time.sleep(1)
     return duty
 
 def alt_cos():
@@ -100,7 +95,7 @@ def alt_cos():
     if hours > 4 and hours < 20:
         delta = (alt_max-ALT_MIN)/2
         duty = delta*cos(pi/8*(hours+4))+delta+ALT_MIN
-    if hours < 4 or hours > 20:
+    else:
         duty = max_alt()
     return duty
 
@@ -117,20 +112,19 @@ def azimuth():
     global paz
     print("Azimuth: ", end='')
     duty = round( ( 6 - (hours)) * AZ_DUTYPERHOUR ) + AZ_MAX
-    if duty < PWMMIN:
-        print("PWMMIN :", end="")
-        duty=PWMMIN
-    elif duty > PWMMAX :
-        print("PWMMAX :", end="")
-        duty=PWMMAX
     if hours < 4 or hours > 20:
         duty = round((PWMMIN+PWMMAX)/2)
-    print(duty)
-    if hours > 3 and hours < 21:
-        paz.duty(duty)
-        time.sleep(1)
     else:
-        print("No AZ")
+        duty = round( ( 6 - (hours)) * AZ_DUTYPERHOUR ) + AZ_MAX
+        if duty < PWMMIN:
+            print("PWMMIN :", end="")
+            duty=PWMMIN
+        elif duty > PWMMAX :
+            print("PWMMAX :", end="")
+            duty=PWMMAX
+    print(duty)
+    paz.duty(duty)
+    time.sleep(1)
     return duty
 
 def update_data(d):
