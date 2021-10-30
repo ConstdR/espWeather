@@ -30,7 +30,7 @@ lvlspin.atten(lvlspin.ATTN_11DB)
 
 
 def run():
-    global tstump
+    global tstump, boot_time
     tstump = '%s-%.2d-%.2d %.2d:%.2d:%.2d' % time.localtime()[0:6]
     if FAKE_SLEEP:
         print("No watchdog")
@@ -56,8 +56,10 @@ def run():
         stime = DEEP_SLEEP - (time.time() - boot_time)
         sleeptime = 1 if stime < 0 else stime
         if FAKE_SLEEP :
+            sleeptime = sleeptime/20
             print("Fake sleep for %s sec" % sleeptime)
-            time.sleep(sleeptime/2)
+            time.sleep(sleeptime)
+            boot_time = time.time()
         else:
             print('Deepsleep for %s sec.' % sleeptime)
             wdt.feed()
