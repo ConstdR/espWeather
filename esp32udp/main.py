@@ -3,9 +3,7 @@ import mqttudp.engine as me
 from math import cos,pi
 
 from espwconst import *
-
-tz = TZ
-longitude = ALT_LONGITUDE
+import lib
 
 dom = (9, 40, 68, 99, 129, 160, 190, 221, 252, 282, 313, 343)
 
@@ -31,27 +29,27 @@ lvlspin.atten(lvlspin.ATTN_11DB)
 
 def run():
     global tstump, boot_time
-    tstump = '%s-%.2d-%.2d %.2d:%.2d:%.2d' % time.localtime()[0:6]
     if FAKE_SLEEP:
         print("No watchdog")
     else:
         wdt = machine.WDT(timeout=int(DEEP_SLEEP+DEEP_SLEEP/2)*1000)
     while True:
+        tstump = '%s-%.2d-%.2d %.2d:%.2d:%.2d' % time.localtime()[0:6]
         if POSITIONING != 'NO':
             position()
         (t, h, p, v, vs, msg) = measure()
-        print("TZ: %s LONGITUDE: %s" % (tz, longitude))
+        print("TZ: %s LONGITUDE: %s" % (cfg['tz'], cfg['longitude']))
         dat = update_data([t, h, p, v, vs, paz.duty(), palt.duty(), machine.wake_reason(), msg])
         try:
             config = { "sleep": DEEP_SLEEP, "fake_sleep": FAKE_SLEEP, "ts_cfg": tstump}
-            print("Publish config: %s" % config)
+            print("Publish config: %s %s" % (MY_ID, config))
             me.send_publish('weather/%s/config' % MY_ID, json.dumps(config))
             dat.reverse()
             print("Publish id: %s Length:%s" % (MY_ID, len(dat)))
             for line in dat:
                 me.send_publish('weather/' + MY_ID, json.dumps(to_dict(line)))
         except Exception as e:
-            print("Publish exception: %s" % str(e))
+            print("Publish exception: %s" % e)
 
         stime = DEEP_SLEEP - (time.time() - boot_time)
         sleeptime = 1 if stime < 0 else stime
@@ -78,7 +76,7 @@ def to_dict(line):
 def position():
     global hours
     tt = time.gmtime()
-    hours = tt[3] + tt[4] * (1/60) + tz
+    hours = tt[3] + tt[4] * (1/60) + cfg['tz']
     az = azimuth()
     alt = altitude()
 
@@ -104,7 +102,7 @@ def alt_cos():
 def max_alt():
     (month, day) = time.gmtime()[1:3]
     d = dom[month - 1] + day
-    a = longitude - 11.75
+    a = cfg['longitude'] - 11.75
     x = (ALT_MAX - ALT_MIN) / 90
     if d >= 183: d = 366 - d
     a = d*23.5/183+a
@@ -166,20 +164,6 @@ def adc_read(adc):
         time.sleep(.05)
     return int(val/count)
 
-def get_config():
-    global tz, longitude
-    try:
-        fh = open(CFG_NAME, 'r')
-        fh.readline() # skip essid
-        fh.readline() # skip pswd
-        tz = float(fh.readline().strip())
-        longitude = float(fh.readline().strip())
-        if tz == '': tz=TZ
-        if longitude == '' : longitude=ALT_LONGITUDE
-        fh.close()
-    except Exception as e:
-        print("Error getting config: %s" % e)
-
 if __name__ == '__main__':
-    get_config()
+    cfg=lib.get_config()
     run()

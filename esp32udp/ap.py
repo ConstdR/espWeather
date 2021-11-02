@@ -3,11 +3,11 @@ import network
 import machine
 import time
 import socket
-import re
+import re, json
 import main
 from espwconst import *
+import lib
 
-CONNECT_WAIT = 10
 CFG_NAME = '_config'
 HTTP_RESPONSE = b"""\
 HTTP/1.0 200 OK
@@ -17,7 +17,6 @@ Content-Length: %d
 """
 
 ap = None
-_hextobyte_cache = None
 
 def start_ap():
     """
@@ -43,13 +42,10 @@ def start_httpd():
         request = conn.recv(1024)
         res = process_request(request)
         if not res:
-            cfg = get_config()
-            if cfg is not None:
-                html = web_page(*cfg)
-            else:
-                html = web_page()
+            cfg = lib.get_config()
+            html = web_page(cfg)
         else:
-            html = web_page(res['essid'], res['pswd'], res['tz'], res['latitude'], res['action'], res['message'])
+            html = web_page(res)
         response = HTTP_RESPONSE % (len(html), html)
         conn.send(response)
         conn.close()
@@ -95,7 +91,7 @@ def action(act):
         'alt_max': alt_max,
         'reset': reset
     }
-    func = switch.get(act)
+    func = switch.get(act, az_mid)
     try:
         return func()
     except Exception as e:
@@ -104,7 +100,7 @@ def action(act):
 def process_request(request):
     print("Req decode: %s" % request.decode().split('\n')[0].strip().split(' '))
     req = request.decode().split('\n')[0].strip().split(' ')
-    fields = ('essid', 'pswd', 'tz', 'latitude', 'action')
+    fields = ('essid', 'pswd', 'tz', 'longitude', 'action')
     get = '' if len(req) < 3 else req[1]
     lst = get.split('?')
     get = '' if len(lst) < 2 else lst[1]
@@ -114,7 +110,7 @@ def process_request(request):
     for part in lst:
         try:
             pair = part.split('=')
-            resdict[pair[0]]=unquote(pair[1]).decode()
+            resdict[pair[0]]=lib.unquote(pair[1]).decode()
         except:
             pass
     print("Res dict: %s" % resdict)
@@ -147,27 +143,25 @@ def process_request(request):
             # find_servers(resdict['srv'], resdict['port'])  # maybe later
             try:
                 fh = open(CFG_NAME, 'w')
-                fh.write(resdict['essid'] + '\n')
-                fh.write(resdict['pswd'] + '\n')
-                fh.write(resdict['tz'] + '\n')
-                fh.write(resdict['latitude'] + '\n')
+                fh.write(json.dumps(resdict))
                 fh.close()
                 resdict['message'] += ' Settings stored. Please restart.'
             except Exception as e:
                 resdict['message'] += ' Settings storing error. %s' % e
-                print(e)
+                print("Store cfg error: %s" % e)
         wlan.active(False)
 
     return resdict
 
-def web_page(essid='essid', pswd='password', tz='1', latitude='50', action="", message=''):
+def web_page(cfg):
+# essid='essid', pswd='password', tz='1', longitude='50', action="", message=''):
   html = """<html><body><h1>%s</h1>""" % ap.config('essid')
   html += """<form action="/" method="get">
-<p>ESSID:<input name="essid" type=text value="%s"></p>
-<p>Password:<input name="pswd" type=text value="%s"></p>
-<p>Time: UTC + <input name="tz" type=text value="%s"></p>
-<p>Latitude: <input name="latitude" type=text value="%s"></p>
-<p>Action: %s
+<p>ESSID:<input name="essid" type=text value="%(essid)s"></p>
+<p>Password:<input name="pswd" type=text value="%(pswd)s"></p>
+<p>Time: UTC + <input name="tz" type=text value="%(tz)s"></p>
+<p>Latitude: <input name="longitude" type=text value="%(longitude)s"></p>
+<p>Action: %(action)s
 <br>
 Azimuth:<input name="action" type="radio" value="az_min">West
 <input name="action" type="radio" value="az_mid" checked>South
@@ -182,67 +176,13 @@ Reset:<input name="action" type="radio" value="reset">
 <p><input type="submit" value="Submit"></p>
 </form>
 <hr>
-%s
-""" % (essid, pswd, tz, latitude, action, message)
-  html += """</body></html>"""
+%(message)s
+</body></html>
+""" % cfg
   return html
-
-def unquote(string):
-    """unquote('abc%20de+f') -> b'abc de f'."""
-    global _hextobyte_cache
-
-    # Note: strings are encoded as UTF-8. This is only an issue if it contains
-    # unescaped non-ASCII characters, which URIs should not.
-    if not string:
-        return b''
-
-    if isinstance(string, str):
-        string = string.replace('+', ' ')
-        string = string.encode('utf-8')
-
-    bits = string.split(b'%')
-    if len(bits) == 1:
-        return string
-
-    res = [bits[0]]
-    append = res.append
-
-    # Build cache for hex to char mapping on-the-fly only for codes
-    # that are actually used
-    if _hextobyte_cache is None:
-        _hextobyte_cache = {}
-
-    for item in bits[1:]:
-        try:
-            code = item[:2]
-            char = _hextobyte_cache.get(code)
-            if char is None:
-                char = _hextobyte_cache[code] = bytes([int(code, 16)])
-            append(char)
-            append(item[2:])
-        except KeyError:
-            append(b'%')
-            append(item)
-
-    return b''.join(res)
-
-def get_config():
-    try:
-        fh = open(CFG_NAME, 'r')
-        essid = fh.readline() # skip essid
-        pswd = fh.readline() # skip pswd
-        tz = float(fh.readline().strip())
-        longitude = float(fh.readline().strip())
-        if tz == '': tz=TZ
-        if longitude == '' : longitude=ALT_LONGITUDE
-        fh.close()
-        return (essid, pswd,tz, longitude, '', 'Existing Config.')
-    except Exception as e:
-        print("Error getting config: %s" % e)
 
 def run():
     print("Run AP.")
     start_ap()
     start_httpd()
-
     return (None, None)

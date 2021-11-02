@@ -1,7 +1,7 @@
 # This file is executed on every boot (including wake-boot from deepsleep)
 import esp
 esp.osdebug(None)
-import os, time, machine, _thread, random
+import os, time, machine, _thread, random, json
 from espwconst import *
 
 pled = machine.Pin(LED_PIN, machine.Pin.OUT, value=1)
@@ -40,15 +40,16 @@ def get_credentials():
             # force run AP by AP_PIN == 0
             raise Exception("Force AP by low %s pin" % AP_PIN) 
         fh = open(CFG_NAME)
-        essid = fh.readline().strip()
-        pswd = fh.readline().strip()
+        cfg = json.loads(fh.read())
         fh.close()
+        essid = cfg['essid']
+        pswd = cfg['pswd']
     except Exception as e:
         print("Error: %s" % e)
         import ap
         ap.run()
         # (essid, pswd) = ap.run()  # ?????
-    return((essid, pswd))
+    return(essid, pswd)
 
 def sync_time():
     """
