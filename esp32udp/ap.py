@@ -1,12 +1,7 @@
-import esp
-import network
-import machine
-import time
-import socket
-import re, json
-import main
+import esp, network, machine, time, socket, re, json
+
 from espwconst import *
-import lib
+import main, lib
 
 CFG_NAME = '_config'
 HTTP_RESPONSE = b"""\
@@ -19,9 +14,7 @@ Content-Length: %d
 ap = None
 
 def start_ap():
-    """
-        Start WiFi Access POINT with default ISSID like ESP_XXXXXX and no password.
-    """
+    "Start WiFi Access POINT with default ISSID like ESP_XXXXXX and no password."
     global ap
     ap = network.WLAN(network.AP_IF)
     ap.active(True)
@@ -30,9 +23,7 @@ def start_ap():
     print("AP active: %s %s" % (ap.config('essid'), ap.ifconfig()))
 
 def start_httpd():
-    """
-        Stupid httpd
-    """
+    "Simple httpd"
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(('', 80))
     s.listen(5)
@@ -139,8 +130,6 @@ def process_request(request):
             resdict['message'] = "%s connection failed!" % resdict['essid']
         else:
             resdict['message'] = "%s connected." % resdict['essid']
-            # store credentials
-            # find_servers(resdict['srv'], resdict['port'])  # maybe later
             try:
                 fh = open(CFG_NAME, 'w')
                 fh.write(json.dumps(resdict))
@@ -154,9 +143,8 @@ def process_request(request):
     return resdict
 
 def web_page(cfg):
-# essid='essid', pswd='password', tz='1', longitude='50', action="", message=''):
-  html = """<html><body><h1>%s</h1>""" % ap.config('essid')
-  html += """<form action="/" method="get">
+    html = """<html><body><h1>%s</h1>""" % ap.config('essid')
+    html += """<form action="/" method="get">
 <p>ESSID:<input name="essid" type=text value="%(essid)s"></p>
 <p>Password:<input name="pswd" type=text value="%(pswd)s"></p>
 <p>Time: UTC + <input name="tz" type=text value="%(tz)s"></p>
@@ -179,7 +167,7 @@ Reset:<input name="action" type="radio" value="reset">
 %(message)s
 </body></html>
 """ % cfg
-  return html
+    return html
 
 def run():
     print("Run AP.")

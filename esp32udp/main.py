@@ -28,7 +28,7 @@ lvlspin.atten(lvlspin.ATTN_11DB)
 
 
 def run():
-    global tstump, boot_time
+    global tstump
     if FAKE_SLEEP:
         print("No watchdog")
     else:
@@ -51,17 +51,19 @@ def run():
         except Exception as e:
             print("Publish exception: %s" % e)
 
-        stime = DEEP_SLEEP - (time.time() - boot_time)
-        sleeptime = 1 if stime < 0 else stime
+        stime = DEEP_SLEEP - (time.time() - lib.boot_time)
+        if stime < 0: stime = 1
+        elif stime > DEEP_SLEEP: stime = DEEP_SLEEP
+
         if FAKE_SLEEP :
-            sleeptime = sleeptime/20
-            print("Fake sleep for %s sec" % sleeptime)
-            time.sleep(sleeptime)
-            boot_time = time.time()
+            stime = stime/20
+            print("Fake sleep for %s sec" % stime)
+            time.sleep(stime)
+            lib.boot_time = time.time()
         else:
-            print('Deepsleep for %s sec.' % sleeptime)
+            print('Deepsleep for %s sec.' % stime)
             wdt.feed()
-            machine.deepsleep(sleeptime * 1000)
+            machine.deepsleep(stime * 1000)
         print()
 
 def to_dict(line):
@@ -112,8 +114,7 @@ def azimuth():
     global paz
     print("Azimuth: ", end='')
     duty = round( ( 6 - (hours)) * AZ_DUTYPERHOUR ) + AZ_MAX
-    if hours < 4 or hours > 20:
-        duty = round((PWMMIN+PWMMAX)/2)
+    if hours < 4 or hours > 20: duty = round((PWMMIN+PWMMAX)/2)
     else:
         duty = round( ( 6 - (hours)) * AZ_DUTYPERHOUR ) + AZ_MAX
         if duty < PWMMIN:
@@ -134,10 +135,8 @@ def update_data(d):
     d.insert(0, tstump)
     s = ','.join([str(e) for e in d ])
     data.append(s)
-    if len(data) > DATA_LENGTH:
-        data.pop(0)
-    with open(DATA_FILE,'w') as f:
-        f.write('\n'.join(data))
+    if len(data) > DATA_LENGTH: data.pop(0)
+    with open(DATA_FILE,'w') as f: f.write('\n'.join(data))
     return data
 
 def measure():
@@ -156,7 +155,7 @@ def measure():
     return res
 
 def adc_read(adc):
-    # damn stupid averaging adc reading
+    # averaging adc reading
     count = 5
     val = 0
     for i in range(count):

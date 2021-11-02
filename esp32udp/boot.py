@@ -1,11 +1,11 @@
 # This file is executed on every boot (including wake-boot from deepsleep)
 import esp
 esp.osdebug(None)
-import os, time, machine, _thread, random, json
+import os, time, machine, _thread, random, json, lib
 from espwconst import *
 
 pled = machine.Pin(LED_PIN, machine.Pin.OUT, value=1)
-boot_time=time.time()
+lib.boot_time=time.time()
 
 def do_connect():
     (essid, pswd) = get_credentials()
@@ -30,15 +30,11 @@ def do_connect():
         return False
 
 def get_credentials():
-    """
-        Get WiFi credentials from file, or start AP to get it.
-    """
+    "Get WiFi credentials from file, or start AP to get it."
     (essid, pswd) = (None,None)
     try:
         appin = machine.Pin(AP_PIN, machine.Pin.IN)
-        if not appin.value():
-            # force run AP by AP_PIN == 0
-            raise Exception("Force AP by low %s pin" % AP_PIN) 
+        if not appin.value(): raise Exception("Force AP by low %s pin" % AP_PIN) 
         fh = open(CFG_NAME)
         cfg = json.loads(fh.read())
         fh.close()
@@ -48,37 +44,25 @@ def get_credentials():
         print("Error: %s" % e)
         import ap
         ap.run()
-        # (essid, pswd) = ap.run()  # ?????
     return(essid, pswd)
 
 def sync_time():
-    """
-        Sync local time over the NTP once per NTP_SYNC_PERIOD
-    """
-    doSync = True
+    "Sync local time over the NTP once per NTP_SYNC_PERIOD"
     try:
         diff = abs(time.time() - os.stat(TS_NAME)[-1] )
         print("Time: %s Diff: %s" % (time.time(), diff))
-        if diff < NTP_SYNC_PERIOD:
-            doSync = False
-    except:
-        pass
-    try:
-        if doSync:
+        if diff > NTP_SYNC_PERIOD: 
             print('Sync time')
             import ntptime
             ntptime.settime()
             fh = open(TS_NAME, 'w')
             fh.write(str(ntptime.time()))
             fh.close()
-    except Exception as e:
-        print("NTP sync error: %s" % e)
+    except Exception as e: print("NTP sync error: %s" % e)
     print('Time: %s' % str(time.localtime()))
 
 def pwrchk():
-    """
-        Check battery powering level is enough
-    """
+    "Check battery powering level is enough"
     lvlpin = machine.ADC(machine.Pin(LVL_PIN))
     lvlpin.width(lvlpin.WIDTH_12BIT)
     lvlpin.atten(lvlpin.ATTN_11DB)
