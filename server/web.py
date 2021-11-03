@@ -193,14 +193,13 @@ def brief_data(fname):
     row['name'] = row.get('name', '_new_')
     lg.debug("Brief data: %s" % row)
 
-    try:
-        i = int(row.get('sleep',900000))
-        row['period'] = i /1000 if i > 1000 else i
-        if int(row.get('fake_sleep',0)):
-            row['period'] = row['period']/10
-    except Exception as e:
-        lg.error("Bad period params: %s\n%s" % (row, e))
-        row['period'] = 450
+    i = int(row.get('sleep',900000))
+    row['period'] = i /1000 if i > 1000 else i
+    if int(row.get('fake_sleep',0)):
+        row['period'] = row['period']/10
+
+    if not row.get('Vsun', True):
+        row['mvs'] = 0
 
     dbh.close()
     lg.debug("Corected brief data %s: %s" % (fname, row))
