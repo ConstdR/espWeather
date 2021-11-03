@@ -11,7 +11,7 @@ DATA_LENGTH = 64 # number of records to store
 CONNECT_WAIT = 10 # wait seconds to connect
 LVL_PIN = 35 # 220k/220k to power/ground and middle node to check power level
 LVL_LOWPWR = 1880 # low power level ~= 3.15V
-LVL_SUNPIN = 33 # Solar battery level pin
+LVL_SUNPIN = None # Solar battery level pin (33) or None
 LED_PIN = 5
 I2CSCL_PIN = 22
 I2CSDA_PIN = 23
