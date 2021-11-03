@@ -22,10 +22,10 @@ lvlpin = machine.ADC(machine.Pin(LVL_PIN))
 lvlpin.width(lvlpin.WIDTH_12BIT)
 lvlpin.atten(lvlpin.ATTN_11DB)
 
-lvlspin = machine.ADC(machine.Pin(LVL_SUNPIN))
-lvlspin.width(lvlspin.WIDTH_12BIT)
-lvlspin.atten(lvlspin.ATTN_11DB)
-
+if LVL_SUNPIN:
+    lvlspin = machine.ADC(machine.Pin(LVL_SUNPIN))
+    lvlspin.width(lvlspin.WIDTH_12BIT)
+    lvlspin.atten(lvlspin.ATTN_11DB)
 
 def run():
     global tstump
@@ -143,7 +143,7 @@ def measure():
     res = [0]*6
     try:
         res[3] = adc_read(lvlpin)
-        res[4] = adc_read(lvlspin)
+        res[4] = adc_read(lvlspin) if LVL_SUNPIN else 0
         res[5] = 'Low power.' if res[3] < LVL_LOWPWR else ''
         i2c = machine.SoftI2C(scl=machine.Pin(I2CSCL_PIN), sda=machine.Pin(I2CSDA_PIN), freq=I2C_FREQ)
         bme = BME280.BME280(i2c=i2c)
