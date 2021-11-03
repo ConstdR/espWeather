@@ -184,6 +184,7 @@ def brief_data(fname):
     maxv = res.fetchone()
     row['v'] = round ( row['voltage'] / maxv['mv'] * 4.2, 2 ) if maxv['mv'] else 0
     row['vs']= round ( row['voltagesun'] / maxv['mvs'] * 6, 2 ) if maxv['mvs'] else 0
+    row['mvs'] = maxv['mvs']
 
     res = dbh.execute("""select name, value from params""")
     rows = res.fetchall()
@@ -202,7 +203,7 @@ def brief_data(fname):
         row['period'] = 450
 
     dbh.close()
-    lg.debug("Brief data %s: %s" % (fname, row))
+    lg.debug("Corected brief data %s: %s" % (fname, row))
     return row
 
 def dict_factory(cursor, row):

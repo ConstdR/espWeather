@@ -39,7 +39,7 @@
 <div class="divSquare hum">{{humidity}} %</div>
 <div style='clear:both'></div>
 <div class="divSquare pres">{{pressure}} hPa</div>
-<div class="divSquare volt">{{v}} / {{vs}} V/V<sub>sun</sub></div>
+<div class="divSquare volt">{{v}}V{% if mvs %} / {{vs}} /V<sub>sun</sub>{% endif %}</div>
 <div style='clear:both'></div>
 </div>
 <div>
@@ -58,7 +58,9 @@
 <div style="clear:both"></div>
 <div class="leftname">V</div><div id="battery"  class="graph"></div>
 <div style="clear:both"></div>
+{% if mvs %}
 <div class="leftname">V<sub>sun</sub></div><div id="solar"  class="graph"></div>
+{% endif %}
 <div style="clear:both"></div>
 </div>
 <script type="text/javascript">
@@ -91,38 +93,40 @@
   gt = new Dygraph( document.getElementById("temperature"), csv,
     { labels: labels,
     visibility: [true, false, false, false, false],
-    rollPeriod: 5,
+    rollPeriod: 4,
     showRoller: true,
     color: "#25259a"
     });
   g1 = new Dygraph( document.getElementById("humidity"), csv,
     { labels: labels,
     visibility: [false, true, false, false, false],
-    rollPeriod: 5,
+    rollPeriod: 48,
     showRoller: true,
     color: "#3d9e3d"
     });
   g2 = new Dygraph( document.getElementById("pressure"), csv,
     { labels: labels,
     visibility: [false, false, true, false, false],
-    rollPeriod: 5,
+    rollPeriod: 96 ,
     showRoller: true,
     color: "#800080"
     });
   g3 = new Dygraph( document.getElementById("battery"), csv,
     { labels: labels,
     visibility: [false, false, false, true, false],
-    rollPeriod: 5,
+    rollPeriod: 24,
     showRoller: true,
     color: "#008080"
     });
+{% if mvs %}
   g4 = new Dygraph( document.getElementById("solar"), csv,
     { labels: labels,
     visibility: [false, false, false, false, true],
-    rollPeriod: 5,
+    rollPeriod: 24,
     showRoller: true,
     color: "#8080f0"
     });
+{% endif %}
   function startRename() {
     var espwn = document.getElementById("espwname");
     var espwrn= document.getElementById("espwrename");
@@ -137,6 +141,8 @@
 </script>
 <hr/>
 <h2><i>IP: {{ip}}</i><h2>
+{% if message: %}
 <span class=message>Message: {{message}}</span>
+{% endif %}
 </body>
 </html>
