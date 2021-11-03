@@ -41,7 +41,7 @@ def run():
         print("TZ: %s LONGITUDE: %s" % (cfg['tz'], cfg['longitude']))
         dat = update_data([t, h, p, v, vs, paz.duty(), palt.duty(), machine.wake_reason(), msg])
         try:
-            config = { "sleep": DEEP_SLEEP, "fake_sleep": FAKE_SLEEP, "ts_cfg": tstump}
+            config = { "sleep": DEEP_SLEEP, "fake_sleep": FAKE_SLEEP, "ts_cfg": tstump, "Vsun": LVL_SUNPIN}
             print("Publish config: %s %s" % (MY_ID, config))
             me.send_publish('weather/%s/config' % MY_ID, json.dumps(config))
             dat.reverse()
