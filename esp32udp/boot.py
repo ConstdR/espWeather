@@ -5,6 +5,7 @@ import os, time, machine, _thread, random, json, lib
 from espwconst import *
 
 pled = machine.Pin(LED_PIN, machine.Pin.OUT, value=1)
+pled = machine.PWM(pled, freq=50, duty=512)
 lib.boot_time=time.time()
 
 def do_connect():
@@ -79,9 +80,16 @@ def run():
 
 def blink():
     print("Blinking")
+    delta = -1
     while True:
-        pled.value(0) if pled.value() == 1 else pled.value(1)
-        time.sleep(random.random()/10)
+        d  = random.randint(0,100)
+        cd = pled.duty()
+        next_duty = d * delta + cd
+        if next_duty > 512 or next_duty < 0:
+            delta *= -1
+            next_duty = d * delta + cd
+        pled.duty(next_duty)
+        time.sleep(random.random()/20)
 
 _thread.start_new_thread(blink, ()) # bells and whistles
 
