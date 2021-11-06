@@ -82,7 +82,7 @@ def blink():
     print("Blinking")
     delta = -1
     while True:
-        d  = random.randint(0,100)
+        d  = random.randint(-100,100) 
         cd = pled.duty()
         next_duty = d * delta + cd
         if next_duty > 512 or next_duty < 0:
