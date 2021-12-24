@@ -9,6 +9,7 @@ dom = (9, 40, 68, 99, 129, 160, 190, 221, 252, 282, 313, 343)
 
 hours = 0
 tstump = ''
+vbat = 2000
 
 az_pin = machine.Pin(AZ_PIN, machine.Pin.OUT)
 paz =  machine.PWM(az_pin, freq=50)
@@ -29,6 +30,8 @@ if LVL_SUNPIN:
 
 def run():
     global tstump
+    (t, h, p, v, vs, msg) = measure()
+    vbat = v
     if FAKE_SLEEP:
         print("No watchdog")
     else:
@@ -94,7 +97,7 @@ def altitude():
 def alt_cos():
     duty = ALT_MIN
     alt_max = max_alt()
-    if hours > 4 and hours < 20:
+    if hours > 4 and hours < 20 and vbat > 1200 :
         delta = (alt_max-ALT_MIN)/2
         duty = delta*cos(pi/8*(hours+4))+delta+ALT_MIN
     else:
@@ -111,10 +114,10 @@ def max_alt():
     return a*x + ALT_MIN
 
 def azimuth():
-    global paz
+    global paz, vbat
     print("Azimuth: ", end='')
     duty = round( ( 6 - (hours)) * AZ_DUTYPERHOUR ) + AZ_MAX
-    if hours < 4 or hours > 20: duty = round((PWMMIN+PWMMAX)/2)
+    if hours < 4 or hours > 20 or vbat < 1200 : duty = round((PWMMIN+PWMMAX)/2)
     else:
         duty = round( ( 6 - (hours)) * AZ_DUTYPERHOUR ) + AZ_MAX
         if duty < PWMMIN:

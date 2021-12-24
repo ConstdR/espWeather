@@ -39,6 +39,6 @@ Connect to board on USB:
 Run web to get measures (better under screen/tmux):
 
 ```
-# cd web 
-# ./web.py 
+# cd server
+# ./start.sh
 ```
