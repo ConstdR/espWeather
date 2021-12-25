@@ -100,21 +100,21 @@
   g1 = new Dygraph( document.getElementById("humidity"), csv,
     { labels: labels,
     visibility: [false, true, false, false, false],
-    rollPeriod: 48,
+    rollPeriod: 4,
     showRoller: true,
     color: "#3d9e3d"
     });
   g2 = new Dygraph( document.getElementById("pressure"), csv,
     { labels: labels,
     visibility: [false, false, true, false, false],
-    rollPeriod: 96 ,
+    rollPeriod: 4,
     showRoller: true,
     color: "#800080"
     });
   g3 = new Dygraph( document.getElementById("battery"), csv,
     { labels: labels,
     visibility: [false, false, false, true, false],
-    rollPeriod: 24,
+    rollPeriod: 4,
     showRoller: true,
     color: "#008080"
     });
@@ -122,7 +122,7 @@
   g4 = new Dygraph( document.getElementById("solar"), csv,
     { labels: labels,
     visibility: [false, false, false, false, true],
-    rollPeriod: 24,
+    rollPeriod: 4,
     showRoller: true,
     color: "#8080f0"
     });
