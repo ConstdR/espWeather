@@ -4,9 +4,11 @@ esp.osdebug(None)
 import os, time, machine, _thread, random, json, lib
 from espwconst import *
 
-pled = machine.Pin(LED_PIN, machine.Pin.OUT, value=1)
-pled = machine.PWM(pled, freq=50, duty=512)
 lib.boot_time=time.time()
+
+# mount SD card:
+# os.mount(machine.SDCard(slot=2, sck=14, miso=2, mosi=15, cs=13), "/sd")
+
 
 def do_connect():
     (essid, pswd) = get_credentials()
@@ -49,9 +51,12 @@ def get_credentials():
 
 def sync_time():
     "Sync local time over the NTP once per NTP_SYNC_PERIOD"
+    diff = NTP_SYNC_PERIOD*2
     try:
         diff = abs(time.time() - os.stat(TS_NAME)[-1] )
         print("Time: %s Diff: %s" % (time.time(), diff))
+    except Exception as e: print("Time diff error: %s" % e)
+    try:
         if diff > NTP_SYNC_PERIOD: 
             print('Sync time')
             import ntptime
@@ -79,17 +84,14 @@ def run():
         print("Low power, no connection")
 
 def blink():
+    pled = machine.Pin(LED_PIN, machine.Pin.OUT, value=1)
+    pled = machine.PWM(pled, freq=1000, duty=512)
+    pled.init()
     print("Blinking")
-    delta = -1
     while True:
-        d  = random.randint(-100,100) 
-        cd = pled.duty()
-        next_duty = d * delta + cd
-        if next_duty > 512 or next_duty < 0:
-            delta *= -1
-            next_duty = d * delta + cd
-        pled.duty(next_duty)
-        time.sleep(random.random()/20)
+        d  = random.randint(0,20)*30
+        pled.duty(d)
+        time.sleep(random.random()/5)
 
 _thread.start_new_thread(blink, ()) # bells and whistles
 
