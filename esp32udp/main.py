@@ -1,4 +1,4 @@
-import BME280, json, time, machine
+import BME280, sht30, json, time, machine
 import mqttudp.engine as me
 from math import cos,pi
 
@@ -144,17 +144,23 @@ def update_data(d):
 
 def measure():
     res = [0]*6
+    res[3] = adc_read(lvlpin)
+    res[4] = adc_read(lvlspin) if LVL_SUNPIN else 0
+    res[5] = 'Low power.' if res[3] < LVL_LOWPWR else ''
     try:
-        res[3] = adc_read(lvlpin)
-        res[4] = adc_read(lvlspin) if LVL_SUNPIN else 0
-        res[5] = 'Low power.' if res[3] < LVL_LOWPWR else ''
         i2c = machine.SoftI2C(scl=machine.Pin(I2CSCL_PIN), sda=machine.Pin(I2CSDA_PIN), freq=I2C_FREQ)
         bme = BME280.BME280(i2c=i2c)
         res = (bme.temperature, bme.humidity, "%.2f" % bme.pressure, res[3], res[4], res[5])
         print("Measuring: %s" % str(res))
     except Exception as e:
-        res[5]= res[5] + " Measuring Error."
-        print("Measurin Error: %s" % str(e))
+        print("BME280 error %s" % str(e))
+        try:
+            sensor = sht30.SHT30(scl_pin=I2CSCL_PIN, sda_pin=I2CSDA_PIN)
+            (tmp, rh) = sensor.measure()
+            res = (tmp, rh, None, res[3], res[4], res[5])
+        except Exception as e:
+            res[5]= res[5] + " Measuring Error."
+            print("sht30 error: %s" % str(e))
     return res
 
 def adc_read(adc):
