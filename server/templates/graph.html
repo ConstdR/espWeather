@@ -38,8 +38,10 @@
 <div class="divSquare temp">{{temperature}} °C</div>
 <div class="divSquare hum">{{humidity}} %</div>
 <div style='clear:both'></div>
+{% if pressure %}
 <div class="divSquare pres">{{pressure}} hPa</div>
-<div class="divSquare volt">{{v}}V{% if mvs %} / {{vs}} /V<sub>sun</sub>{% endif %}</div>
+{% endif %}
+<div class="divSquare volt">{{v}}V{% if mvs %} / {{vs}} V<sub>sun</sub>{% endif %}</div>
 <div style='clear:both'></div>
 </div>
 <div>
@@ -52,8 +54,10 @@
 <div>
 <div class="leftname">°C</div><div id="temperature" class="graph"></div>
 <div style="clear:both"></div>
+{% if pressure %}
 <div class="leftname">hPa</div><div id="pressure" class="graph"></div>
 <div style="clear:both"></div>
+{% endif %}
 <div class="leftname">%</div><div id="humidity" class="graph"></div>
 <div style="clear:both"></div>
 <div class="leftname">V</div><div id="battery"  class="graph"></div>
@@ -104,6 +108,7 @@
     showRoller: true,
     color: "#3d9e3d"
     });
+{% if pressure %}
   g2 = new Dygraph( document.getElementById("pressure"), csv,
     { labels: labels,
     visibility: [false, false, true, false, false],
@@ -111,6 +116,7 @@
     showRoller: true,
     color: "#800080"
     });
+{% endif %}
   g3 = new Dygraph( document.getElementById("battery"), csv,
     { labels: labels,
     visibility: [false, false, false, true, false],
