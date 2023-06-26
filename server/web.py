@@ -6,7 +6,6 @@ import logging
 import configparser
 import os, re
 import sqlite3
-import aiohttp_jinja2
 import jinja2
 
 from datetime import datetime
@@ -23,6 +22,8 @@ DEF_RANGE = 7 # in days!!!
 lg = logging.getLogger(__name__)
 args = None
 cfg = None
+env = jinja2.Environment()
+loader = jinja2.FileSystemLoader('templates')
 
 def main():
     global args, cfg
@@ -38,7 +39,6 @@ def main():
     logging.basicConfig(level=cfg['debug'], format='%(asctime)s %(name)s.%(lineno)s %(levelname)s: %(message)s')
 
     app = web.Application()
-    aiohttp_jinja2.setup(app,loader=jinja2.FileSystemLoader('templates'))
     app.add_routes([
                     web.get('/', index),
                     web.get(r'/csv/{id}', csv_get),
@@ -91,10 +91,10 @@ async def store(request):
     dbh.close()
     return web.Response(text='OK')
 
-@aiohttp_jinja2.template('graph.html')
 async def graph(request):
     sensor_id = request.match_info['id']
     lg.debug("Graph for %s" % sensor_id)
+    template = loader.load(env, 'graph.html')
     dbname = cfg['dbdir']+'/'+sensor_id+'.sqlite3'
     if not os.path.isfile(dbname):
         raise web.HTTPNotFound(text="Not here.")
@@ -109,7 +109,8 @@ async def graph(request):
     info['id'] = sensor_id
     (info['startdate'], info['enddate']) = get_range(request)
     info['refreshtime'] = int(info['period']/2)
-    return info
+    return web.Response(content_type='text/html', charset='utf-8',
+                        body=template.render(info))
 
 def get_range(request):
     daterange = None
@@ -129,9 +130,9 @@ def get_range(request):
         daterange =(start.strftime('%Y-%m-%d'), now.strftime('%Y-%m-%d'))
     return daterange
 
-@aiohttp_jinja2.template('index.html')
 async def index(request):
     lg.debug("Get sensors list")
+    template = loader.load(env, 'index.html')
     sensors = {}
     for name in os.listdir(cfg['dbdir']):
         if name.endswith(".sqlite3"):
@@ -141,7 +142,8 @@ async def index(request):
                 sensors[sensor_id] = info
             except:
                 lg.error("Bad data in %s" % name)
-    return { 'sensors': sensors, 'refreshtime':450 }
+    return web.Response(content_type='text/html', charset='utf-8', 
+                        body=template.render({ 'sensors': sensors, 'refreshtime':450 }))
 
 async def csv_get(request):
     sensor_id = request.match_info['id']
@@ -180,7 +182,7 @@ def brief_data(fname):
                           order by timedate desc limit 1""")
     row = res.fetchone()
     res = dbh.execute("""select max(voltage) as mv, max(voltagesun) as mvs from data
-                        where timedate > datetime(date('now'), '-90 day')""")
+                        where timedate > datetime(date('now'), '-60 day')""")
     maxv = res.fetchone()
     row['v'] = round ( row['voltage'] / maxv['mv'] * 4.2, 2 ) if maxv['mv'] else 0
     row['vs']= round ( row['voltagesun'] / maxv['mvs'] * 6, 2 ) if maxv['mvs'] else 0
@@ -208,7 +210,7 @@ def brief_data(fname):
 def dict_factory(cursor, row):
     d = {}
     for idx,col in enumerate(cursor.description):
-        d[col[0]] = row[idx]
+        d[col[0]] = row[idx] if row[idx] != 'None' else ''
     return d
 
 if __name__ == '__main__':
