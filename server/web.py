@@ -51,7 +51,7 @@ def main():
     p = Process(target=listenudp.main)
     p.start()
 
-    web.run_app(app, host=cfg['host'], port=cfg['port'])
+    web.run_app(app, host=cfg['host'], port=int(cfg['port']))
 
 async def favicon(request):
     res = web.FileResponse('static/favicon.ico')
